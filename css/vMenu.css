@@ -1,0 +1,38 @@
+.viztools_vmenu {
+    width: 100%;
+}
+
+.viztools_vmenu_bar {
+    width: 100%;
+    border: 1px solid black;
+    margin-bottom: 5px;
+    box-sizing: border-box;
+}
+
+.viztools_vmenu_bar ul {
+    padding: 0px;
+    margin: 5px;
+}
+
+.viztools_vmenu_bar ul li {
+    display: inline-block;
+    margin-right: 5px;
+    padding: 8px;
+    cursor: pointer;
+    border: 2px solid black;
+    background-color: black;
+    color: white;
+    transition: background-color 1s, color 1s;
+}
+
+.viztools_vmenu_bar ul li:hover {
+    background-color: white;
+    color: black;
+}
+
+.viztools_vmenu_box {
+    width: 100%;
+    border: 1px solid black;
+    padding: 5px;
+    box-sizing: border-box;
+}

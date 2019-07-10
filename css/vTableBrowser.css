@@ -1,0 +1,28 @@
+.viztools_vtablebrowser {
+    width: 100%;
+}
+
+.viztools_vtablebrowser table {
+    width: 100%;
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+
+.viztools_vtablebrowser table th {
+    background-color: black;
+    color: white;
+    border: 1px solid black;
+}
+
+.viztools_vtablebrowser table td {
+    border: 1px solid black;
+}
+
+.viztools_vtablebrowser table tr {
+    background-color: white;
+    color: black;
+}
+
+.viztools_vtablebrowser table tr:nth-child(2n + 1) {
+    background-color: #e6dbdb;
+}
