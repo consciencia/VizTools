@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 
-sudo pip install .
+pip2 install -e . --user
+pip3 install -e . --user

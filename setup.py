@@ -8,4 +8,6 @@ setuptools.setup(name="viztools",
                  long_description="A Python library for generating JS apps.",
                  author="Consciencia",
                  author_email='consciencia@protonmail.com',
-                 keywords=["vizualizations", "webapp", "generator", "js"])
+                 keywords=["vizualizations", "webapp", "generator", "js"],
+                 packages=["viztools"],
+                 include_package_data=True)
