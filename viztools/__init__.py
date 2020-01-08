@@ -38,7 +38,9 @@ class VBase:
 
     def _loadResource(self, root, name=None):
         if name:
-            p = os.path.join(thisdir(), root, name + "." + root)
+            p = os.path.join(thisdir() + os.path.sep + "..",
+                             root,
+                             name + "." + root)
         else:
             p = root
         if os.path.exists(p):
@@ -134,13 +136,19 @@ class VBase:
 class VMain(VBase):
     def __init__(self, title, author):
         VBase.__init__(self, "vMain")
-        jsLibRoot = os.path.join(thisdir(), "libs", "js")
+        jsLibRoot = os.path.join(thisdir(),
+                                 "..",
+                                 "libs",
+                                 "js")
         jsLibs = os.listdir(jsLibRoot)
         jsLibs = [os.path.join(jsLibRoot, jsLib) for jsLib in jsLibs]
         self._jslibraries = ""
         for jsLib in jsLibs:
             self._jslibraries += self._loadResource(jsLib)
-        cssLibRoot = os.path.join(thisdir(), "libs", "css")
+        cssLibRoot = os.path.join(thisdir(),
+                                  "..",
+                                  "libs",
+                                  "css")
         cssLibs = os.listdir(cssLibRoot)
         cssLibs = [os.path.join(cssLibRoot, cssLib) for cssLib in cssLibs]
         self._csslibraries = ""
