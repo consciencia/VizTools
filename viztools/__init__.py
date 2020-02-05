@@ -1,6 +1,7 @@
 import os
 import copy
 import json
+import chardet
 
 
 def thisdir():
@@ -45,12 +46,24 @@ class VBase:
             p = root
         if os.path.exists(p):
             with open(p, "rb") as h:
-                return h.read()
+                content = h.read()
+                encoding = chardet.detect(content)["encoding"]
+                if encoding:
+                    content = content.decode(encoding)
+                else:
+                    content = content.decode("utf-8")
+                return content
         if self._resourceRoot:
             p = os.path.join(self._resourceRoot, self._name + "." + root)
             if os.path.exists(p):
                 with open(p, "rb") as h:
-                    return h.read()
+                    content = h.read()
+                    encoding = chardet.detect(content)["encoding"]
+                    if encoding:
+                        content = content.decode(encoding)
+                    else:
+                        content = content.decode("utf-8")
+                    return content
         return None
 
     def _inject(self, to, data):
@@ -184,6 +197,11 @@ class VMain(VBase):
             "TITLE": self._title,
             "AUTHOR": self._author
         })
+
+    def renderToFile(self, destination):
+        page = self.render().encode("utf-8")
+        with open(destination, "wb") as hndl:
+            hndl.write(page)
 
 
 class VStyle(VBase):
