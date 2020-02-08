@@ -12,6 +12,7 @@ if ($CHILDREN.length != menuLabels.length)
 
 var defaultLabel = %DEFAULT_LABEL%;
 var defaultIndex = -1;
+var menuEntries = [];
 var $ul = $("<ul></ul>");
 $menuBar.append($ul);
 
@@ -22,16 +23,26 @@ for (var i = 0; i < menuLabels.length; ++i)
     $li.on("click", function() {
         var index = Number($(this).data("index"));
 
+        for (var y = 0; y < menuEntries.length; ++y)
+        {
+            menuEntries[y].removeClass("clicked");
+        }
+
+        $(this).addClass("clicked");
+
         while ($contentBox[0].firstChild) {
             $contentBox[0].removeChild($contentBox[0].firstChild);
         }
 
         $contentBox.append($CHILDREN[index].node);
     });
+
     $ul.append($li);
+    menuEntries.push($li);
 
     if (menuLabels[i] == defaultLabel && defaultIndex < 0)  {
         defaultIndex = i;
+        $li.addClass("clicked");
     }
 }
 
