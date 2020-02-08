@@ -1,10 +1,11 @@
 .viztools_vmenu {
     width: 100%;
+    border: 1px solid black;
 }
 
 .viztools_vmenu_bar {
     width: 100%;
-    border: 1px solid black;
+    border-bottom: 1px solid black;
     margin-bottom: 5px;
     box-sizing: border-box;
 }
@@ -32,7 +33,6 @@
 
 .viztools_vmenu_box {
     width: 100%;
-    border: 1px solid black;
     padding: 5px;
     box-sizing: border-box;
 }
