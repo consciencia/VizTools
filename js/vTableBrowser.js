@@ -20,4 +20,14 @@ for (var i = 0; i < tableRows.length; ++i) {
         var $column = $("<td>" + val + "</td>");
         $row.append($column);
     }
+
+    $row.on("click", function() {
+        var $this = $(this);
+
+        if ($this.hasClass("mark")) {
+            $this.removeClass("mark");
+        } else {
+            $this.addClass("mark");
+        }
+    });
 }

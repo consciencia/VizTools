@@ -1,5 +1,6 @@
 .viztools_vhbox {
     display: block;
+    width: max-content;
 }
 
 .viztools_vhbox_helper {

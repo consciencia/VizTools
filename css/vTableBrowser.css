@@ -26,3 +26,13 @@
 .viztools_vtablebrowser table tr:nth-child(2n + 1) {
     background-color: #e6dbdb;
 }
+
+.viztools_vtablebrowser table tr:hover {
+    background-color: gray;
+    color: white;
+}
+
+.viztools_vtablebrowser table .mark {
+    background-color: red !important;
+    color: white !important;
+}
