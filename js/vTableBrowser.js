@@ -1,5 +1,6 @@
-/* https://stackoverflow.com/questions/783899/how-can-i-count-text-lines-inside-an-dom-element-can-i */
+/* %EXPORT% %{ */
 function getNumberOfLines(node) {
+    /* https://stackoverflow.com/questions/783899/how-can-i-count-text-lines-inside-an-dom-element-can-i */
     var $element = $(node);
     var originalHtml = $element.html();
     var words = originalHtml.split(/[\s/]/);
@@ -26,43 +27,9 @@ function getNumberOfLines(node) {
     return linePositions.length;
 }
 
-var tableKeys = %TABLE_KEYS%;
-var tableRows = %TABLE_ROWS%;
-var $table = $NODE.find("table");
-var $heading = $("<tr></tr>");
-
-for (var i = 0; i < tableKeys.length; ++i) {
-    var $column = $("<th>" + tableKeys[i]  + "</th>");
-    $heading.append($column);
-}
-
-$table.append($heading);
-
-for (var i = 0; i < tableRows.length; ++i) {
-    var $row = $("<tr></tr>");
-    $table.append($row);
-
-    for (var y = 0; y < tableKeys.length; ++y) {
-        var key = tableKeys[y];
-        var val = tableRows[i][key];
-        var $column = $("<td>" + val + "</td>");
-        $row.append($column);
-    }
-
-    $row.on("click", function() {
-        var $this = $(this);
-
-        if ($this.hasClass("mark")) {
-            $this.removeClass("mark");
-        } else {
-            $this.addClass("mark");
-        }
-    });
-}
-
-function resizer() {
-    if ($table.is(':visible')) {
-        $table.find("td, th").each(function() {
+function tableResizer() {
+    if (this.is(':visible')) {
+        this.find("td, th").each(function() {
             var $cell = $(this);
             var lines = getNumberOfLines(this);
 
@@ -73,8 +40,49 @@ function resizer() {
             }
         });
     } else {
-        setTimeout(resizer ,100);
+        setTimeout(tableResizer.bind(this), 100);
     }
 }
 
-setTimeout(resizer, 100);
+function tableCreateHeadings(tableKeys, $heading) {
+    for (var i = 0; i < tableKeys.length; ++i) {
+        var $column = $("<th>" + tableKeys[i]  + "</th>");
+        $heading.append($column);
+    }
+}
+
+function tableCreateRows(tableKeys, tableRows, $table) {
+    for (var i = 0; i < tableRows.length; ++i) {
+        var $row = $("<tr></tr>");
+        $table.append($row);
+
+        for (var y = 0; y < tableKeys.length; ++y) {
+            var key = tableKeys[y];
+            var val = tableRows[i][key];
+            var $column = $("<td>" + val + "</td>");
+            $row.append($column);
+        }
+
+        $row.on("click", function() {
+            var $this = $(this);
+
+            if ($this.hasClass("mark")) {
+                $this.removeClass("mark");
+            } else {
+                $this.addClass("mark");
+            }
+        });
+    }
+}
+/* %} %ENDEXPORT% */
+
+var tableKeys = %TABLE_KEYS%;
+var tableRows = %TABLE_ROWS%;
+var $table = $NODE.find("table");
+var $heading = $("<tr></tr>");
+
+$table.append($heading);
+tableCreateHeadings(tableKeys, $heading);
+tableCreateRows(tableKeys, tableRows, $table);
+
+setTimeout(tableResizer.bind($table), 100);

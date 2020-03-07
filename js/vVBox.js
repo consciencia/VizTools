@@ -1,4 +1,5 @@
 $NODE = $("<div class='viztools_vvbox'></div>");
+$NODE.attr("id", $RENDERNAME);
 
 for (var i = 0; i < $CHILDREN.length; ++i) {
     var child = $CHILDREN[i];

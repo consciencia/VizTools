@@ -1,4 +1,5 @@
 $NODE = $("<div class='viztools_vmenu'></div>");
+$NODE.attr("id", $RENDERNAME);
 var $menuBar = $("<div class='viztools_vmenu_bar'></div>");
 $NODE.append($menuBar);
 var $contentBox = $("<div class='viztools_vmenu_box'></div>");

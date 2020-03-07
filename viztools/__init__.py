@@ -1,6 +1,7 @@
 import os
 import copy
 import json
+import re
 import chardet
 
 
@@ -12,7 +13,8 @@ def thisdir():
 class VBase:
     NEXTID = 0
     METASTORE = {
-        "cssFragments": {}
+        "cssFragments": {},
+        "stats": {}
     }
 
     def __init__(self, name, resourceRoot=None):
@@ -82,6 +84,23 @@ class VBase:
     def _genRenderName(self, id):
         return "Viztools$" + self._name + "$" + str(id)
 
+    def _extractJsFragments(self):
+        # /* %EXPORT% %{ */
+        # ...anything here...
+        # /* %} %ENDEXPORT% */
+        fragmentRegex = ("\\/\\*\\s*%EXPORT%\\s+%\\{\\s*\\*\\/"
+                         + "((?:\n|.)*)"
+                         + "\\/\\*\\s*%\\}\\s+%ENDEXPORT%\\s*\\*\\/")
+        rawFragments = re.findall(fragmentRegex, self._js)
+        fragments = {}
+        for rawFragment in rawFragments:
+            fragments[rawFragment.strip()] = True
+        return re.sub(fragmentRegex, "", self._js), fragments
+
+    def _mergeJsFragments(self, destFrags, sourceFrags):
+        for fragment in sourceFrags:
+            destFrags[fragment] = True
+
     def clone(self):
         temp = copy.deepcopy(self)
         temp._instId = temp._genId()
@@ -104,29 +123,43 @@ class VBase:
         else:
             return self._params[key]
 
+    def beforeRender(self):
+        pass
+
     def render(self):
+        if self._name in VBase.METASTORE["stats"]:
+            VBase.METASTORE["stats"][self._name] += 1
+        else:
+            VBase.METASTORE["stats"][self._name] = 1
+        self.beforeRender()
         instId = self._instId
         renderName = self._renderName
         self._params["ID"] = instId
+        self._params["RENDERNAME"] = renderName
         childCss = ""
         childJs = ""
+        childJsFragments = {}
         childExprs = "["
         for ch in self._children:
             r = ch.render()
             childCss += r["css"]
             childJs += r["js"]
+            self._mergeJsFragments(childJsFragments, r["jsFragments"])
             childExprs += r["expr"] + ","
         if childExprs[-1] == ",":
             childExprs = childExprs[:-1]
         childExprs += "]"
-        finalHtml = self._html.replace("\n", "")
-        finalHtml = finalHtml.replace("\"", "\\\"")
+        localHtml = self._html.replace("\n", "")
+        localHtml = localHtml.replace("\"", "\\\"")
+        localJs, localJsFragments = self._extractJsFragments()
+        self._mergeJsFragments(childJsFragments, localJsFragments)
         jsInjectObj = {
             "PREV": childJs,
+            "ID": instId,
             "RENDERNAME": renderName,
-            "HTML": self._inject(finalHtml,
+            "HTML": self._inject(localHtml,
                                  self._params),
-            "JS": self._inject(self._js,
+            "JS": self._inject(localJs,
                                self._params)
         }
         exprInjectObj = {
@@ -147,9 +180,14 @@ class VBase:
                                "    } else {\n" +
                                "        var $NODE = null;\n" +
                                "    }\n" +
-                               "    %JS%\n" +
+                               "    \n" +
+                               "    var $ID = %ID%;\n" +
+                               "    var $RENDERNAME = \"%RENDERNAME%\";\n" +
+                               "    \n" +
+                               "    %JS%\n\n" +
                                "    return { \"node\": $NODE };\n" +
                                "}\n\n", jsInjectObj),
+            "jsFragments": childJsFragments,
             "expr": self._inject("%RENDERNAME%(%CHILDREN%)", exprInjectObj)
         }
 
@@ -185,21 +223,28 @@ class VMain(VBase):
         self._js += js
 
     def render(self):
+        VBase.METASTORE["stats"] = {}
+        VBase.METASTORE["stats"][self._name] = 1
         children = [child.render() for child in self._children]
         childJs = ""
+        childJsFragments = {}
         childCss = ""
         childExprs = ""
         for child in children:
             childJs += child["js"]
+            self._mergeJsFragments(childJsFragments, child["jsFragments"])
             childCss += child["css"]
             childExprs += "var node = " + child["expr"] + ";\n"
             childExprs += "$(document.body).append(node[\"node\"]);\n"
+        childJsFragmentsStr = ""
+        for fragment in childJsFragments:
+            childJsFragmentsStr += fragment + "\n\n"
         return self._inject(self._html, {
             "JS_LIBS": self._jslibraries,
             "CSS_LIBS": self._csslibraries,
             "CUSTOM_JS": self._js,
             "CUSTOM_CSS": self._css,
-            "CHILD_JS": childJs,
+            "CHILD_JS": childJsFragmentsStr + childJs,
             "CHILD_CSS": childCss,
             "CHILD_EXPRS": childExprs,
             "TITLE": self._title,
@@ -210,6 +255,19 @@ class VMain(VBase):
         page = self.render().encode("utf-8")
         with open(destination, "wb") as hndl:
             hndl.write(page)
+
+    def printStats(self):
+        stats = []
+        for component in VBase.METASTORE["stats"]:
+            stats.append((component, VBase.METASTORE["stats"][component]))
+        stats.sort(key=lambda x: x[1])
+        stats.reverse()
+        print("------ BEGIN VIZTOOLS STATS ---")
+        for stat in stats:
+            print("    %s - %s" % stat)
+        print("    ======")
+        print("    = %s components" % sum([x[1] for x in stats]))
+        print("------ END VIZTOOLS STATS ---")
 
 
 class VStyle(VBase):
@@ -283,13 +341,12 @@ class VMenu(VBase):
                                 self._default)
             self._default = label
 
-    def render(self):
+    def beforeRender(self):
         self._default = self._default or ""
         self.params("DEFAULT_LABEL",
                     json.dumps(self._default))
         self.params("MENU_LABELS",
                     json.dumps(self._labels))
-        return VBase.render(self)
 
 
 class VTableBrowser(VBase):
@@ -321,12 +378,11 @@ class VTableBrowser(VBase):
             r[key] = str(r[key])
         self._rows.append(r)
 
-    def render(self):
+    def beforeRender(self):
         self.params("TABLE_ROWS",
                     json.dumps(self._rows))
         self.params("TABLE_KEYS",
                     json.dumps(self._keys))
-        return VBase.render(self)
 
 
 class VDiagram(VBase):
@@ -385,7 +441,7 @@ class VDiagram(VBase):
             "interpolation": interpolation
         })
 
-    def render(self):
+    def beforeRender(self):
         self.params("DIAG_TYPE",
                     json.dumps(self._type))
         self.params("DATASET",
@@ -402,7 +458,6 @@ class VDiagram(VBase):
                     json.dumps(self._ytitle))
         self.params("ENABLE_LOGS",
                     json.dumps(self._enableLogs))
-        return VBase.render(self)
 
 
 class VDiagramXy(VDiagram):
