@@ -11,6 +11,9 @@ def thisdir():
 
 class VBase:
     NEXTID = 0
+    METASTORE = {
+        "cssFragments": {}
+    }
 
     def __init__(self, name, resourceRoot=None):
         self._name = name
@@ -130,8 +133,13 @@ class VBase:
             "RENDERNAME": renderName,
             "CHILDREN": childExprs
         }
+        localCss = self._inject(self._css, self._params) + "\n\n"
+        if localCss in VBase.METASTORE["cssFragments"]:
+            localCss = ""
+        else:
+            VBase.METASTORE["cssFragments"][localCss] = True
         return {
-            "css": childCss + self._inject(self._css, self._params) + "\n\n",
+            "css": childCss + localCss,
             "js": self._inject("%PREV% function %RENDERNAME%($CHILDREN) {\n" +
                                "    var $temp = \"%HTML%\";\n" +
                                "    if ($temp) {\n" +

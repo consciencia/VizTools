@@ -1,3 +1,31 @@
+/* https://stackoverflow.com/questions/783899/how-can-i-count-text-lines-inside-an-dom-element-can-i */
+function getNumberOfLines(node) {
+    var $element = $(node);
+    var originalHtml = $element.html();
+    var words = originalHtml.split(/[\s/]/);
+    var linePositions = [];
+
+    // Wrap words in spans
+    for (var i in words) {
+        words[i] = "<span>" + words[i] + "</span>";
+    }
+
+    // Temporarily replace element content with spans. Layout should be identical.
+    $element.html(words.join(" "));
+
+    // Iterate through words and collect positions of text lines
+    $element.children("span").each(function () {
+        var lp = $(this).position().top;
+        if (linePositions.indexOf(lp) == -1) linePositions.push(lp);
+    });
+
+    // Revert to original html content
+    $element.html(originalHtml);
+
+    // Return number of text lines
+    return linePositions.length;
+}
+
 var tableKeys = %TABLE_KEYS%;
 var tableRows = %TABLE_ROWS%;
 var $table = $NODE.find("table");
@@ -31,3 +59,22 @@ for (var i = 0; i < tableRows.length; ++i) {
         }
     });
 }
+
+function resizer() {
+    if ($table.is(':visible')) {
+        $table.find("td, th").each(function() {
+            var $cell = $(this);
+            var lines = getNumberOfLines(this);
+
+            if (lines > 1) {
+                $cell.css({
+                    "font-size": "12px"
+                });
+            }
+        });
+    } else {
+        setTimeout(resizer ,100);
+    }
+}
+
+setTimeout(resizer, 100);

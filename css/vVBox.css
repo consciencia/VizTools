@@ -1,7 +1,10 @@
 .viztools_vvbox {
     display: block;
+    width: 100%;
 }
 
 .viztools_vvbox_helper {
     display: block;
+    width: 100%;
+    margin-bottom: 5px;
 }
