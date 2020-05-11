@@ -42,6 +42,17 @@ class VBase:
                 raise Exception("Resource root '%s' is not file or dir!" %
                                 self._resourceRoot)
 
+    def _inferEncoding(self, payload):
+        try:
+            payload = payload.decode("utf-8")
+        except:
+            encoding = chardet.detect(payload)["encoding"]
+            if encoding:
+                payload = payload.decode(encoding)
+            else:
+                raise Exception("Failed to infer encoding!")
+        return payload
+
     def _loadResource(self, root, name=None):
         if name:
             p = os.path.join(thisdir() + os.path.sep + "..",
@@ -51,23 +62,13 @@ class VBase:
             p = root
         if os.path.exists(p):
             with open(p, "rb") as h:
-                content = h.read()
-                encoding = chardet.detect(content)["encoding"]
-                if encoding:
-                    content = content.decode(encoding)
-                else:
-                    content = content.decode("utf-8")
+                content = self._inferEncoding(h.read())
                 return content
         if self._resourceRoot:
             p = os.path.join(self._resourceRoot, self._name + "." + root)
             if os.path.exists(p):
                 with open(p, "rb") as h:
-                    content = h.read()
-                    encoding = chardet.detect(content)["encoding"]
-                    if encoding:
-                        content = content.decode(encoding)
-                    else:
-                        content = content.decode("utf-8")
+                    content = self._inferEncoding(h.read())
                     return content
         return None
 
@@ -85,9 +86,6 @@ class VBase:
         return "Viztools$" + self._name + "$" + str(id)
 
     def _extractJsFragments(self):
-        # /* %EXPORT% %{ */
-        # ...anything here...
-        # /* %} %ENDEXPORT% */
         fragmentRegex = ("\\/\\*\\s*%EXPORT%\\s+%\\{\\s*\\*\\/"
                          + "((?:\n|.)*)"
                          + "\\/\\*\\s*%\\}\\s+%ENDEXPORT%\\s*\\*\\/")
