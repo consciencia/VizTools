@@ -413,6 +413,16 @@ class VDiagram(VBase):
             raise Exception("Input parameter must be list!")
         self._labels = labels
 
+    def addSingleDataset(self, x, y, label,
+                         bgColor, borderColor,
+                         fill=False, interpolation=False):
+        if self._labels != []:
+            raise Exception("Labels already set!")
+        self.setLabels(x)
+        self.addDataset(x, y, label,
+                        bgColor, borderColor,
+                        fill, interpolation)
+
     def addDataset(self, x, y, label,
                    bgColor, borderColor,
                    fill=False, interpolation=False):
