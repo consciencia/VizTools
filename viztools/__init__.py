@@ -1,7 +1,8 @@
 import os
+import re
+import six
 import copy
 import json
-import re
 import chardet
 
 
@@ -73,9 +74,24 @@ class VBase:
         return None
 
     def _inject(self, to, data):
-        for key in data:
-            val = data[key]
-            to = to.replace("%" + key + "%", str(val))
+        if six.PY2:
+            if not isinstance(to, u"".__class__):
+                to = to.decode("utf-8")
+            for key in data:
+                val = data[key]
+                if isinstance(val, u"".__class__):
+                    pass
+                elif isinstance(val, "".__class__):
+                    val = val.decode("utf-8")
+                else:
+                    val = str(val).decode("utf-8")
+                if not isinstance(key, u"".__class__):
+                    key = key.decode("utf-8")
+                to = to.replace("%" + key + "%", val)
+        else:
+            for key in data:
+                val = data[key]
+                to = to.replace("%" + key + "%", str(val))
         return to
 
     def _genId(self):
@@ -147,7 +163,8 @@ class VBase:
         if childExprs[-1] == ",":
             childExprs = childExprs[:-1]
         childExprs += "]"
-        localHtml = self._html.replace("\n", "")
+        localHtml = self._html.replace("\r\n", "")
+        localHtml = localHtml.replace("\n", "")
         localHtml = localHtml.replace("\"", "\\\"")
         localJs, localJsFragments = self._extractJsFragments()
         self._mergeJsFragments(childJsFragments, localJsFragments)
