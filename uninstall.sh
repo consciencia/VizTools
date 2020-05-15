@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-pip uninstall VizTools
+pip uninstall viztools
