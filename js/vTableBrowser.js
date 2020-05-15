@@ -1,29 +1,25 @@
 /* %EXPORT% %{ */
 function getNumberOfLines(node) {
-    /* https://stackoverflow.com/questions/783899/how-can-i-count-text-lines-inside-an-dom-element-can-i */
     var $element = $(node);
     var originalHtml = $element.html();
     var words = originalHtml.split(/[\s/]/);
     var linePositions = [];
 
-    // Wrap words in spans
     for (var i in words) {
         words[i] = "<span>" + words[i] + "</span>";
     }
 
-    // Temporarily replace element content with spans. Layout should be identical.
     $element.html(words.join(" "));
-
-    // Iterate through words and collect positions of text lines
     $element.children("span").each(function () {
         var lp = $(this).position().top;
-        if (linePositions.indexOf(lp) == -1) linePositions.push(lp);
+
+        if (linePositions.indexOf(lp) == -1) {
+            linePositions.push(lp);
+        }
     });
 
-    // Revert to original html content
-    $element.html(originalHtml);
 
-    // Return number of text lines
+    $element.html(originalHtml);
     return linePositions.length;
 }
 
@@ -35,7 +31,7 @@ function tableResizer() {
 
             if (lines > 1) {
                 $cell.css({
-                    "font-size": "12px"
+                    "font-size": "11px"
                 });
             }
         });
@@ -47,6 +43,7 @@ function tableResizer() {
 function tableCreateHeadings(tableKeys, $heading) {
     for (var i = 0; i < tableKeys.length; ++i) {
         var $column = $("<th>" + tableKeys[i]  + "</th>");
+        $column.data("index", i);
         $heading.append($column);
     }
 }
@@ -60,6 +57,9 @@ function tableCreateRows(tableKeys, tableRows, $table) {
             var key = tableKeys[y];
             var val = tableRows[i][key];
             var $column = $("<td>" + val + "</td>");
+            $column.data("index", y);
+            $column.data("value", val);
+            $column.data("valueIsNumeric", !isNaN(Number(val)));
             $row.append($column);
         }
 

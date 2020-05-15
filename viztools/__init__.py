@@ -11,6 +11,17 @@ def thisdir():
     return os.path.sep.join(segs)
 
 
+def stringToColor(chars):
+    hash = 0;
+    for char in chars:
+        hash = ord(char) + ((hash << 5) - hash);
+    color = "#";
+    for i in range(3):
+        value = (hash >> (i * 8)) & 0xFF;
+        color += hex(value)[2:].zfill(2)
+    return color
+
+
 class VBase:
     NEXTID = 0
     METASTORE = {
@@ -430,19 +441,36 @@ class VDiagram(VBase):
             raise Exception("Input parameter must be list!")
         self._labels = labels
 
-    def addSingleDataset(self, x, y, label,
-                         bgColor, borderColor,
-                         fill=False, interpolation=False):
+    def getLabels(self):
+        return self._labels
+
+    def addSingleDataset(self,
+                         x,
+                         y,
+                         label,
+                         bgColor=None,
+                         borderColor=None,
+                         fill=False,
+                         interpolation=False):
         if self._labels != []:
             raise Exception("Labels already set!")
         self.setLabels(x)
-        self.addDataset(x, y, label,
-                        bgColor, borderColor,
-                        fill, interpolation)
+        self.addDataset(x,
+                        y,
+                        label,
+                        bgColor,
+                        borderColor,
+                        fill,
+                        interpolation)
 
-    def addDataset(self, x, y, label,
-                   bgColor, borderColor,
-                   fill=False, interpolation=False):
+    def addDataset(self,
+                   x,
+                   y,
+                   label,
+                   bgColor=None,
+                   borderColor=None,
+                   fill=False,
+                   interpolation=False):
         if self._type == "line" or self._type == "bar":
             if type(x) is not list or type(y) is not list:
                 raise Exception("Invalid input!")
@@ -458,6 +486,11 @@ class VDiagram(VBase):
             "x": x,
             "y": y
         })
+        autoColor = stringToColor(label)
+        if bgColor is None:
+            bgColor = autoColor
+        if borderColor is None:
+            borderColor = autoColor
         self._datasetMeta.append({
             "label": label,
             "backgroundColor": bgColor,
@@ -496,22 +529,10 @@ class VDiagramXy(VDiagram):
                             diagType)
         VDiagram.setType(self, diagType)
 
-    def addDataset(self, x, y, label,
-                   bgColor, borderColor,
-                   fill=False, interpolation=False):
-        if type(x) is not list or type(y) is not list:
-            raise Exception("Invalid input (x or y)!")
-        if len(x) != len(y):
-            raise Exception("Sizes dont match (xy)!")
-        VDiagram.addDataset(self, x, y, label,
-                            bgColor, borderColor,
-                            fill, interpolation)
-
 
 class VDiagramRel(VDiagram):
     def __init__(self, title):
         VDiagram.__init__(self, title, "", "")
-        self._labelCount = 0
 
     def setType(self, diagType):
         suppTypes = ["doughnut", "pie", "polarArea"]
@@ -520,15 +541,18 @@ class VDiagramRel(VDiagram):
                             diagType)
         VDiagram.setType(self, diagType)
 
-    def setLabels(self, labels):
-        VDiagram.setLabels(self, labels)
-        self._labelCount = len(labels)
-
-    def setData(self, vals, bgColors, borderColors):
-        if len(vals) != len(bgColors) or\
-           len(vals) != len(borderColors) or\
-           len(vals) != self._labelCount:
+    def setData(self, vals, bgColors=None, borderColors=None):
+        if bgColors is not None and len(vals) != len(bgColors):
             raise Exception("Invalid input!")
+        if borderColors is not None and len(vals) != len(borderColors):
+            raise Exception("Invalid input!")
+        labels = self.getLabels()
+        if len(vals) != len(labels):
+            raise Exception("Invalid input!")
+        if bgColors is None:
+            bgColors = [stringToColor(x) for x in labels]
+        if borderColors is None:
+            borderColors = [stringToColor(x) for x in labels]
         VDiagram.addDataset(self,
                             None,
                             vals,
@@ -536,7 +560,22 @@ class VDiagramRel(VDiagram):
                             bgColors,
                             borderColors)
 
-    def addDataset(self, x, y, label,
-                   bgColor, borderColor,
-                   fill=False, interpolation=False):
-        raise Exception("Cant add additional datasets!")
+    def addDataset(self,
+                   x,
+                   y,
+                   label,
+                   bgColor=None,
+                   borderColor=None,
+                   fill=False,
+                   interpolation=False):
+        raise Exception("Can't add additional datasets!")
+
+    def addSingleDataset(self,
+                         x,
+                         y,
+                         label,
+                         bgColor=None,
+                         borderColor=None,
+                         fill=False,
+                         interpolation=False):
+        raise Exception("Can't add standard dataset!")
