@@ -6,6 +6,9 @@ import json
 import chardet
 
 
+__author__ = "Consciencia"
+
+
 def thisdir():
     segs = os.path.realpath(__file__).split(os.path.sep)[:-1]
     return os.path.sep.join(segs)
