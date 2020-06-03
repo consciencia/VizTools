@@ -10,8 +10,7 @@ __author__ = "Consciencia"
 
 
 def thisdir():
-    segs = os.path.realpath(__file__).split(os.path.sep)[:-1]
-    return os.path.sep.join(segs)
+    return os.path.dirname(os.path.realpath(__file__))
 
 
 def stringToColor(chars):
@@ -349,6 +348,12 @@ class VHeading(VBase):
             raise Exception("Level must be integer!")
         self.params("HEADING_LEVEL", level)
         self.params("HEADING_STR", content)
+        self.params("HEADING_HREF", None)
+
+    def setHref(self, link):
+        if not isinstance(link, ("".__class__, u"".__class__)):
+            raise Exception("Link must be str!")
+        self.params("HEADING_HREF", json.dumps(link))
 
     def addChild(self, child):
         raise Exception("You cant add more children nodes to " +
