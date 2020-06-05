@@ -348,7 +348,7 @@ class VHeading(VBase):
             raise Exception("Level must be integer!")
         self.params("HEADING_LEVEL", level)
         self.params("HEADING_STR", content)
-        self.params("HEADING_HREF", None)
+        self.params("HEADING_HREF", json.dumps(""))
 
     def setHref(self, link):
         if not isinstance(link, ("".__class__, u"".__class__)):

@@ -1,6 +1,6 @@
 var linkRef = %HEADING_HREF%;
 
-if (linkRef) {
+if (linkRef.length) {
     var $link = $("<a></a>")
     $link.attr("href", linkRef)
     $link.append($NODE.contents())
