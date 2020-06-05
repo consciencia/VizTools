@@ -447,6 +447,8 @@ class VDiagram(VBase):
     def setLabels(self, labels):
         if type(labels) is not list:
             raise Exception("Input parameter must be list!")
+        if len(labels) == 0:
+            raise Exception("It makes no sense to pass 0 labels!")
         self._labels = labels
 
     def getLabels(self):
@@ -486,6 +488,7 @@ class VDiagram(VBase):
                 raise Exception("Sizes dont match!")
             for v in x:
                 if v not in self._labels:
+                    print(json.dumps(self._labels, indent=4))
                     raise Exception("Label '%s' not found in labels!" % v)
         else:
             if len(y) != len(self._labels):
