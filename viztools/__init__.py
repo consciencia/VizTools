@@ -4,6 +4,7 @@ import six
 import copy
 import json
 import chardet
+import threading
 
 
 __author__ = "Consciencia"
@@ -221,6 +222,8 @@ class VBase:
 
 
 class VMain(VBase):
+    lock = threading.Lock()
+
     def __init__(self, title, author):
         VBase.__init__(self, "vMain")
         jsLibRoot = os.path.join(thisdir(),
@@ -251,33 +254,36 @@ class VMain(VBase):
         self._js += js
 
     def render(self):
-        VBase.METASTORE["stats"] = {}
-        VBase.METASTORE["stats"][self._name] = 1
-        children = [child.render() for child in self._children]
-        childJs = ""
-        childJsFragments = {}
-        childCss = ""
-        childExprs = ""
-        for child in children:
-            childJs += child["js"]
-            self._mergeJsFragments(childJsFragments, child["jsFragments"])
-            childCss += child["css"]
-            childExprs += "var node = " + child["expr"] + ";\n"
-            childExprs += "$(document.body).append(node[\"node\"]);\n"
-        childJsFragmentsStr = ""
-        for fragment in childJsFragments:
-            childJsFragmentsStr += fragment + "\n\n"
-        return self._inject(self._html, {
-            "JS_LIBS": self._jslibraries,
-            "CSS_LIBS": self._csslibraries,
-            "CUSTOM_JS": self._js,
-            "CUSTOM_CSS": self._css,
-            "CHILD_JS": childJsFragmentsStr + childJs,
-            "CHILD_CSS": childCss,
-            "CHILD_EXPRS": childExprs,
-            "TITLE": self._title,
-            "AUTHOR": self._author
-        })
+        with VMain.lock:
+            VBase.NEXTID = 0
+            VBase.METASTORE["cssFragments"] = {}
+            VBase.METASTORE["stats"] = {}
+            VBase.METASTORE["stats"][self._name] = 1
+            children = [child.render() for child in self._children]
+            childJs = ""
+            childJsFragments = {}
+            childCss = ""
+            childExprs = ""
+            for child in children:
+                childJs += child["js"]
+                self._mergeJsFragments(childJsFragments, child["jsFragments"])
+                childCss += child["css"]
+                childExprs += "var node = " + child["expr"] + ";\n"
+                childExprs += "$(document.body).append(node[\"node\"]);\n"
+            childJsFragmentsStr = ""
+            for fragment in childJsFragments:
+                childJsFragmentsStr += fragment + "\n\n"
+            return self._inject(self._html, {
+                "JS_LIBS": self._jslibraries,
+                "CSS_LIBS": self._csslibraries,
+                "CUSTOM_JS": self._js,
+                "CUSTOM_CSS": self._css,
+                "CHILD_JS": childJsFragmentsStr + childJs,
+                "CHILD_CSS": childCss,
+                "CHILD_EXPRS": childExprs,
+                "TITLE": self._title,
+                "AUTHOR": self._author
+            })
 
     def renderToFile(self, destination):
         page = self.render().encode("utf-8")
