@@ -25,6 +25,13 @@ def stringToColor(chars):
     return color
 
 
+def sanitizeHtml(code):
+    code = code.replace("\"", "\\\"")
+    code = code.replace("\r\n", "<br>")
+    code = code.replace("\n", "<br>")
+    return code
+
+
 class VBase:
     NEXTID = 0
     METASTORE = {
@@ -330,7 +337,7 @@ class VVBox(VBase):
 class VLabel(VBase):
     def __init__(self, content):
         VBase.__init__(self, "vLabel")
-        self.params("LABEL_STR", content)
+        self.params("LABEL_STR", sanitizeHtml(content))
 
     def addChild(self, child):
         raise Exception("You cant add more children nodes to " +
@@ -340,7 +347,7 @@ class VLabel(VBase):
 class VParagraph(VBase):
     def __init__(self, content):
         VBase.__init__(self, "vParagraph")
-        self.params("PARAGRAPH_STR", content)
+        self.params("PARAGRAPH_STR", sanitizeHtml(content))
 
     def addChild(self, child):
         raise Exception("You cant add more children nodes to " +
@@ -353,7 +360,7 @@ class VHeading(VBase):
         if type(level) is not int:
             raise Exception("Level must be integer!")
         self.params("HEADING_LEVEL", level)
-        self.params("HEADING_STR", content)
+        self.params("HEADING_STR", sanitizeHtml(content))
         self.params("HEADING_HREF", json.dumps(""))
 
     def setHref(self, link):
@@ -415,7 +422,7 @@ class VTableBrowser(VBase):
             if key not in self._keys:
                 raise Exception("Key '%s' not registered!" %
                                 key)
-            r[key] = str(r[key])
+            r[key] = sanitizeHtml(str(r[key]))
         self._rows.append(r)
 
     def beforeRender(self):
