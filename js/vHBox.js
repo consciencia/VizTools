@@ -1,7 +1,7 @@
 $NODE = $("<div class='viztools_vhbox'></div>");
 $NODE.attr("id", $RENDERNAME);
 
-var percentagePerItem = 99 / $CHILDREN.length;
+var percentagePerItem = 100 / $CHILDREN.length;
 percentagePerItem = percentagePerItem.toString() + "%";
 
 for (var i = 0; i < $CHILDREN.length; ++i) {
