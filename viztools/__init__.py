@@ -29,6 +29,7 @@ def sanitizeHtml(code):
     code = code.replace("\"", "\\\"")
     code = code.replace("\r\n", "<br>")
     code = code.replace("\n", "<br>")
+    # TODO: Remove <script> and <style> tags.
     return code
 
 
@@ -315,13 +316,21 @@ class VStyle(VBase):
     def __init__(self, node, style, selector=None, noLiveUpdates=False):
         VBase.__init__(self, "vStyle")
         VBase.addChild(self, node)
-        self.params("STYLE", json.dumps(style))
-        self.params("SELECTOR", json.dumps(selector))
-        self.params("NOUPDATES", json.dumps(noLiveUpdates))
+        VBase.params(self, "STYLE", json.dumps(style))
+        VBase.params(self, "SELECTOR", json.dumps(selector))
+        VBase.params(self, "NOUPDATES", json.dumps(noLiveUpdates))
+        self._node = node
+
+    def __getattr__(self, name):
+        # Slow but very short way how to make proxy.
+        # https://stackoverflow.com/questions/26091833/proxy-object-in-python
+        return getattr(self._node, name)
+
+    def params(self, key, val=None):
+        return self._node.params(key, val)
 
     def addChild(self, child):
-        raise Exception("You cant add more children nodes to " +
-                        "style pseudo-node!")
+        self._node.addChild(child)
 
 
 class VHBox(VBase):
