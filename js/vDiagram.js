@@ -65,7 +65,10 @@ function diagramCreateScales(xTitle, yTitle, diagType) {
 		        scaleLabel: {
 			        display: true,
 			        labelString: yTitle
-		        }
+		        },
+                ticks: {
+		            beginAtZero: true
+	            }
 	        }]
         };
     }
