@@ -551,7 +551,7 @@ class VDiagram(VBase):
                     json.dumps(self._enableLogs))
 
 
-class VDiagramXy(VDiagram):
+class VDiagramMulti(VDiagram):
     def __init__(self, title, xtitle, ytitle):
         VDiagram.__init__(self, title, xtitle, ytitle)
 
@@ -563,7 +563,7 @@ class VDiagramXy(VDiagram):
         VDiagram.setType(self, diagType)
 
 
-class VDiagramRel(VDiagram):
+class VDiagramSingle(VDiagram):
     def __init__(self, title):
         VDiagram.__init__(self, title, "", "")
 
@@ -574,13 +574,19 @@ class VDiagramRel(VDiagram):
                             diagType)
         VDiagram.setType(self, diagType)
 
-    def setData(self, vals, bgColors=None, borderColors=None):
-        if bgColors is not None and len(vals) != len(bgColors):
+    def addSingleDataset(self, x, y, bgColors=None, borderColors=None):
+        self.addDataset(x, y, bgColors, borderColors)
+
+    def addDataset(self, x, y, bgColors=None, borderColors=None):
+        if bgColors is not None and len(y) != len(bgColors):
             raise Exception("Invalid input!")
-        if borderColors is not None and len(vals) != len(borderColors):
+        if borderColors is not None and len(y) != len(borderColors):
             raise Exception("Invalid input!")
         labels = self.getLabels()
-        if len(vals) != len(labels):
+        if len(labels) == 0:
+            self.setLabels(x)
+            labels = self.getLabels()
+        if len(y) != len(labels):
             raise Exception("Invalid input!")
         if bgColors is None:
             bgColors = [stringToColor(x) for x in labels]
@@ -588,27 +594,7 @@ class VDiagramRel(VDiagram):
             borderColors = [stringToColor(x) for x in labels]
         VDiagram.addDataset(self,
                             None,
-                            vals,
+                            y,
                             "",
                             bgColors,
                             borderColors)
-
-    def addDataset(self,
-                   x,
-                   y,
-                   label,
-                   bgColor=None,
-                   borderColor=None,
-                   fill=False,
-                   interpolation=False):
-        raise Exception("Can't add additional datasets!")
-
-    def addSingleDataset(self,
-                         x,
-                         y,
-                         label,
-                         bgColor=None,
-                         borderColor=None,
-                         fill=False,
-                         interpolation=False):
-        raise Exception("Can't add standard dataset!")
