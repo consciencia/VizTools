@@ -1,88 +1,71 @@
 /* %EXPORT% %{ */
-function getNumberOfLines(node) {
-    var $element = $(node);
-    var originalHtml = $element.html();
-    var words = originalHtml.split(/[\s/]/);
-    var linePositions = [];
+VizTools.TableBrowser = {
+    create($table, tableKeys, tableRows) {
+        var $heading = $("<tr></tr>");
 
-    for (var i in words) {
-        words[i] = "<span>" + words[i] + "</span>";
-    }
+        $table.append($heading);
+        VizTools.TableBrowser.createHeadings(tableKeys, $heading);
+        VizTools.TableBrowser.createRows(tableKeys, tableRows, $table);
 
-    $element.html(words.join(" "));
-    $element.children("span").each(function () {
-        var lp = $(this).position().top;
+        setTimeout(VizTools.TableBrowser.resize.bind($table),
+                   100);
+    },
 
-        if (linePositions.indexOf(lp) == -1) {
-            linePositions.push(lp);
+    resize() {
+        if (this.is(':visible')) {
+            this.find("td, th").each(function() {
+                var $cell = $(this);
+
+                if (VizTools.Utils.nodeHeighInLines(this) > 1) {
+                    $cell.css({
+                        "font-size": "11px"
+                    });
+                }
+            });
+        } else {
+            setTimeout(VizTools.TableBrowser.resize.bind(this),
+                       100);
         }
-    });
+    },
 
-
-    $element.html(originalHtml);
-    return linePositions.length;
-}
-
-function tableResizer() {
-    if (this.is(':visible')) {
-        this.find("td, th").each(function() {
-            var $cell = $(this);
-            var lines = getNumberOfLines(this);
-
-            if (lines > 1) {
-                $cell.css({
-                    "font-size": "11px"
-                });
-            }
-        });
-    } else {
-        setTimeout(tableResizer.bind(this), 100);
-    }
-}
-
-function tableCreateHeadings(tableKeys, $heading) {
-    for (var i = 0; i < tableKeys.length; ++i) {
-        var $column = $("<th>" + tableKeys[i]  + "</th>");
-        $column.data("index", i);
-        $heading.append($column);
-    }
-}
-
-function tableCreateRows(tableKeys, tableRows, $table) {
-    for (var i = 0; i < tableRows.length; ++i) {
-        var $row = $("<tr></tr>");
-        $table.append($row);
-
-        for (var y = 0; y < tableKeys.length; ++y) {
-            var key = tableKeys[y];
-            var val = tableRows[i][key];
-            var $column = $("<td>" + val + "</td>");
-            $column.data("index", y);
-            $column.data("value", val);
-            $column.data("valueIsNumeric", !isNaN(Number(val)));
-            $row.append($column);
+    createHeadings(tableKeys, $heading) {
+        for (var i = 0; i < tableKeys.length; ++i) {
+            var $column = $("<th>" + tableKeys[i]  + "</th>");
+            $column.data("index", i);
+            $heading.append($column);
         }
+    },
 
-        $row.on("click", function() {
-            var $this = $(this);
+    createRows(tableKeys, tableRows, $table) {
+        for (var i = 0; i < tableRows.length; ++i) {
+            var $row = $("<tr></tr>");
+            $table.append($row);
 
-            if ($this.hasClass("mark")) {
-                $this.removeClass("mark");
-            } else {
-                $this.addClass("mark");
+            for (var y = 0; y < tableKeys.length; ++y) {
+                var key = tableKeys[y];
+                var val = tableRows[i][key];
+                var $column = $("<td>" + val + "</td>");
+                $column.data("index", y);
+                $column.data("value", val);
+                $column.data("valueIsNumeric",
+                             !isNaN(Number(val)));
+                $row.append($column);
             }
-        });
+
+            $row.on("click", function() {
+                var $this = $(this);
+
+                if ($this.hasClass("mark")) {
+                    $this.removeClass("mark");
+                } else {
+                    $this.addClass("mark");
+                }
+            });
+        }
     }
-}
+};
 /* %} %ENDEXPORT% */
 
-var tableKeys = %TABLE_KEYS%;
-var tableRows = %TABLE_ROWS%;
-var $table = $NODE.find("table");
-var $heading = $("<tr></tr>");
-
-$table.append($heading);
-tableCreateHeadings(tableKeys, $heading);
-tableCreateRows(tableKeys, tableRows, $table);
-
-setTimeout(tableResizer.bind($table), 100);
+VizTools.TableBrowser.create($NODE.find("table"),
+                             %TABLE_KEYS%,
+                             %TABLE_ROWS%);
