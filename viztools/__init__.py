@@ -58,6 +58,7 @@ class VBase:
     NEXTID = 0
     METASTORE = {
         "cssFragments": {},
+        "resourceCache": {},
         "stats": {}
     }
 
@@ -67,6 +68,7 @@ class VBase:
         self._html = self._loadResource("html", name)
         self._css = self._loadResource("css", name)
         self._js = self._loadResource("js", name)
+        self._baseJs = self._loadResource("js", "vBase")
         self._children = []
         self._params = {}
         self._instId = self._genId()
@@ -98,6 +100,9 @@ class VBase:
         return payload
 
     def _loadResource(self, root, name=None):
+        key = "%s%s" % (root, name)
+        if key in VBase.METASTORE["resourceCache"]:
+            return VBase.METASTORE["resourceCache"][key]
         if name:
             p = os.path.join(thisdir() + os.path.sep + "..",
                              root,
@@ -107,13 +112,16 @@ class VBase:
         if os.path.exists(p):
             with open(p, "rb") as h:
                 content = self._inferEncoding(h.read())
+                VBase.METASTORE["resourceCache"][key] = content
                 return content
         if self._resourceRoot:
             p = os.path.join(self._resourceRoot, self._name + "." + root)
             if os.path.exists(p):
                 with open(p, "rb") as h:
                     content = self._inferEncoding(h.read())
+                    VBase.METASTORE["resourceCache"][key] = content
                     return content
+        VBase.METASTORE["resourceCache"][key] = None
         return None
 
     def _inject(self, to, data):
@@ -231,20 +239,10 @@ class VBase:
             VBase.METASTORE["cssFragments"][localCss] = True
         return {
             "css": childCss + localCss,
-            "js": self._inject("%PREV% function %RENDERNAME%($CHILDREN) {\n" +
-                               "    var $temp = \"%HTML%\";\n" +
-                               "    if ($temp) {\n" +
-                               "        var $NODE = $($temp);\n" +
-                               "    } else {\n" +
-                               "        var $NODE = null;\n" +
-                               "    }\n" +
-                               "    \n" +
-                               "    var $ID = %ID%;\n" +
-                               "    var $RENDERNAME = \"%RENDERNAME%\";\n" +
-                               "    \n" +
-                               "    %JS%\n\n" +
-                               "    return { \"node\": $NODE };\n" +
-                               "}\n\n", jsInjectObj),
+            "js": self._inject("%PREV% "
+                               + "function %RENDERNAME%($CHILDREN) {\n"
+                               + self._baseJs
+                               + "}\n\n", jsInjectObj),
             "jsFragments": childJsFragments,
             "expr": self._inject("%RENDERNAME%(%CHILDREN%)", exprInjectObj)
         }
@@ -497,13 +495,8 @@ class VDiagram(VBase):
     def getLabels(self):
         return self._labels
 
-    def addSingleDataset(self,
-                         x,
-                         y,
-                         label,
-                         bgColor=None,
-                         borderColor=None,
-                         fill=False,
+    def addSingleDataset(self, x, y, label, bgColor=None,
+                         borderColor=None, fill=False,
                          interpolation=False):
         if self._labels != []:
             raise Exception("Labels already set!")
@@ -516,13 +509,8 @@ class VDiagram(VBase):
                         fill,
                         interpolation)
 
-    def addDataset(self,
-                   x,
-                   y,
-                   label,
-                   bgColor=None,
-                   borderColor=None,
-                   fill=False,
+    def addDataset(self, x, y, label, bgColor=None,
+                   borderColor=None, fill=False,
                    interpolation=False):
         if self._type == "line" or self._type == "bar":
             if type(x) is not list or type(y) is not list:
@@ -572,18 +560,6 @@ class VDiagram(VBase):
                     json.dumps(self._enableLogs))
 
 
-class VDiagramMulti(VDiagram):
-    def __init__(self, title, xtitle, ytitle):
-        VDiagram.__init__(self, title, xtitle, ytitle)
-
-    def setType(self, diagType):
-        suppTypes = ["line", "bar"]
-        if diagType not in suppTypes:
-            raise Exception("Invalid diagram type '%s'!" %
-                            diagType)
-        VDiagram.setType(self, diagType)
-
-
 class VDiagramSingle(VDiagram):
     def __init__(self, title):
         VDiagram.__init__(self, title, "", "")
@@ -619,3 +595,15 @@ class VDiagramSingle(VDiagram):
                             "",
                             bgColors,
                             borderColors)
+
+
+class VDiagramMulti(VDiagram):
+    def __init__(self, title, xtitle, ytitle):
+        VDiagram.__init__(self, title, xtitle, ytitle)
+
+    def setType(self, diagType):
+        suppTypes = ["line", "bar"]
+        if diagType not in suppTypes:
+            raise Exception("Invalid diagram type '%s'!" %
+                            diagType)
+        VDiagram.setType(self, diagType)
