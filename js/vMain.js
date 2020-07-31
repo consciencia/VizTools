@@ -1,6 +1,6 @@
 var VizTools = window.VizTools || {
     Utils: {
-        nodeHeighInLines(node) {
+        nodeHeightInLines(node) {
             var $element = $(node);
             var originalHtml = $element.html();
             var words = originalHtml.split(/[\s/]/);

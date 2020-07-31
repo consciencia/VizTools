@@ -9,9 +9,7 @@ if ($temp) {
 var $ID = %ID%;
 var $RENDERNAME = "%RENDERNAME%";
 
-
 %JS%
-
 
 return {
     node: $NODE

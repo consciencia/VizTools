@@ -1,36 +1,60 @@
-var style = %STYLE%;
-var selector = %SELECTOR%;
-var noLiveUpdates = %NOUPDATES%;
-$NODE = $CHILDREN[0].node;
+/* %EXPORT% %{ */
+VizTools.Style = {
+    create(node, style, selector, noLiveUpdates) {
+        var obj = {
+            node: node,
+            style: style,
+            selector: selector,
+            noLiveUpdates: noLiveUpdates
+        };
+        obj.__proto__ = VizTools.Style;
 
-function setStyle() {
-    if (selector) {
-        $($NODE).find(selector).css(style);
-    } else {
-        $($NODE).css(style);
-    }
-}
+        obj.setStyle()
+        obj.spawnUpdateMonitor()
 
-setStyle();
+        return obj;
+    },
 
-if (!noLiveUpdates) {
-    var MutationObserver = (window.MutationObserver
-                            || window.WebKitMutationObserver
-                            || window.MozMutationObserver);
-    var observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            if (mutation.type === "characterData") {
-                setStyle();
-            } else if (mutation.type === "childList") {
-                if ( mutation.addedNodes.length) {
-                    setStyle();
+    setStyle() {
+        if (this.selector) {
+            $(this.node).find(this.selector).css(this.style);
+        } else {
+            $(this.node).css(this.style);
+        }
+    },
+
+    spawnUpdateMonitor() {
+        if (this.noLiveUpdates) {
+            return;
+        }
+
+        var self = this;
+        var MutationObserver = (window.MutationObserver
+                                || window.WebKitMutationObserver
+                                || window.MozMutationObserver);
+        var observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === "characterData") {
+                    self.setStyle();
+                } else if (mutation.type === "childList") {
+                    if (mutation.addedNodes.length) {
+                        self.setStyle();
+                    }
                 }
-            }
+            });
         });
-    });
-    observer.observe($NODE[0], {
-        childList: true,
-        characterData: true,
-        subtree: true
-    });
-}
+
+        observer.observe(this.node, {
+            childList: true,
+            characterData: true,
+            subtree: true
+        });
+    }
+};
+/* %} %ENDEXPORT% */
+
+styleObj = VizTools.Style.create($CHILDREN[0].node,
+                                 %STYLE%,
+                                 %SELECTOR%,
+                                 %NOUPDATES%);
+$NODE = styleObj.node;

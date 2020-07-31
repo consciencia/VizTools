@@ -1,52 +1,74 @@
-$NODE = $("<div class='viztools_vmenu'></div>");
-$NODE.attr("id", $RENDERNAME);
-var $menuBar = $("<div class='viztools_vmenu_bar'></div>");
-$NODE.append($menuBar);
-var $contentBox = $("<div class='viztools_vmenu_box'></div>");
-$NODE.append($contentBox);
-var menuLabels = %MENU_LABELS%;
+/* %EXPORT% %{ */
+VizTools.Menu = {
+    create(children, renderName, menuLabels, defaultLabel) {
+        var obj = {
+            $root: $("<div class='viztools_vmenu'></div>"),
+            children: children,
+            renderName: renderName,
+            menuLabels: menuLabels,
+            defaultLabel: defaultLabel
+        };
+        obj.__proto__ = VizTools.Menu;
 
-if ($CHILDREN.length != menuLabels.length)
-{
-    throw Error("menuLabels != $CHILDREN'");
-}
+        obj.$root.attr("id", obj.renderName);
+        var $menuBar = $("<div class='viztools_vmenu_bar'></div>");
+        obj.$root.append($menuBar);
+        var $contentBox = $("<div class='viztools_vmenu_box'></div>");
+        obj.$root.append($contentBox);
 
-var defaultLabel = %DEFAULT_LABEL%;
-var defaultIndex = -1;
-var menuEntries = [];
-var $ul = $("<ul></ul>");
-$menuBar.append($ul);
-
-for (var i = 0; i < menuLabels.length; ++i)
-{
-    var $li = $("<li>" + menuLabels[i]  + "</li>");
-    $li.data("index", i);
-    $li.on("click", function() {
-        var index = Number($(this).data("index"));
-
-        for (var y = 0; y < menuEntries.length; ++y)
+        if (obj.children.length != obj.menuLabels.length)
         {
-            menuEntries[y].removeClass("clicked");
+            throw Error("menuLabels.length != children.length'");
         }
 
-        $(this).addClass("clicked");
+        var defaultIndex = -1;
+        var menuEntries = [];
+        var $ul = $("<ul></ul>");
+        $menuBar.append($ul);
 
-        while ($contentBox[0].firstChild) {
-            $contentBox[0].removeChild($contentBox[0].firstChild);
+        for (var i = 0; i < obj.menuLabels.length; ++i)
+        {
+            var $li = $("<li>" + obj.menuLabels[i]  + "</li>");
+
+            $li.data("index", i);
+            $li.on("click", function() {
+                var index = Number($(this).data("index"));
+
+                for (var y = 0; y < menuEntries.length; ++y)
+                {
+                    menuEntries[y].removeClass("clicked");
+                }
+
+                $(this).addClass("clicked");
+
+                while ($contentBox[0].firstChild) {
+                    $contentBox[0].removeChild($contentBox[0].firstChild);
+                }
+
+                $contentBox.append(obj.children[index].node);
+            });
+
+            $ul.append($li);
+            menuEntries.push($li);
+
+            if (obj.menuLabels[i] == obj.defaultLabel
+                && defaultIndex < 0)  {
+                defaultIndex = i;
+                $li.addClass("clicked");
+            }
         }
 
-        $contentBox.append($CHILDREN[index].node);
-    });
+        if (defaultIndex >= 0) {
+            $contentBox.append(obj.children[defaultIndex].node);
+        }
 
-    $ul.append($li);
-    menuEntries.push($li);
-
-    if (menuLabels[i] == defaultLabel && defaultIndex < 0)  {
-        defaultIndex = i;
-        $li.addClass("clicked");
+        return obj;
     }
-}
+};
+/* %} %ENDEXPORT% */
 
-if (defaultIndex >= 0) {
-    $contentBox.append($CHILDREN[defaultIndex].node);
-}
+menu = VizTools.Menu.create($CHILDREN,
+                            $RENDERNAME,
+                            %MENU_LABELS%,
+                            %DEFAULT_LABEL%);
+$NODE = menu.$root;

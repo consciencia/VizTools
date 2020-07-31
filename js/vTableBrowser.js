@@ -1,49 +1,56 @@
 /* %EXPORT% %{ */
 VizTools.TableBrowser = {
     create($table, tableKeys, tableRows) {
-        var $heading = $("<tr></tr>");
+        var obj = {
+            $table: $table,
+            $heading: $("<tr></tr>"),
+            tableKeys: tableKeys,
+            tableRows: tableRows
+        };
+        obj.__proto__ = VizTools.TableBrowser;
 
-        $table.append($heading);
-        VizTools.TableBrowser.createHeadings(tableKeys, $heading);
-        VizTools.TableBrowser.createRows(tableKeys, tableRows, $table);
+        obj.$table.append(obj.$heading);
 
-        setTimeout(VizTools.TableBrowser.resize.bind($table),
-                   100);
+        obj.createHeadings();
+        obj.createRows();
+
+        setTimeout(obj.resize.bind(obj), 100);
+
+        return obj;
     },
 
     resize() {
-        if (this.is(':visible')) {
-            this.find("td, th").each(function() {
+        if (this.$table.is(':visible')) {
+            this.$table.find("td, th").each(function() {
                 var $cell = $(this);
 
-                if (VizTools.Utils.nodeHeighInLines(this) > 1) {
+                if (VizTools.Utils.nodeHeightInLines(this) > 1) {
                     $cell.css({
                         "font-size": "11px"
                     });
                 }
             });
         } else {
-            setTimeout(VizTools.TableBrowser.resize.bind(this),
-                       100);
+            setTimeout(this.resize.bind(this), 100);
         }
     },
 
-    createHeadings(tableKeys, $heading) {
-        for (var i = 0; i < tableKeys.length; ++i) {
-            var $column = $("<th>" + tableKeys[i]  + "</th>");
+    createHeadings() {
+        for (var i = 0; i < this.tableKeys.length; ++i) {
+            var $column = $("<th>" + this.tableKeys[i]  + "</th>");
             $column.data("index", i);
-            $heading.append($column);
+            this.$heading.append($column);
         }
     },
 
-    createRows(tableKeys, tableRows, $table) {
-        for (var i = 0; i < tableRows.length; ++i) {
+    createRows() {
+        for (var i = 0; i < this.tableRows.length; ++i) {
             var $row = $("<tr></tr>");
-            $table.append($row);
+            this.$table.append($row);
 
-            for (var y = 0; y < tableKeys.length; ++y) {
-                var key = tableKeys[y];
-                var val = tableRows[i][key];
+            for (var y = 0; y < this.tableKeys.length; ++y) {
+                var key = this.tableKeys[y];
+                var val = this.tableRows[i][key];
                 var $column = $("<td>" + val + "</td>");
                 $column.data("index", y);
                 $column.data("value", val);
