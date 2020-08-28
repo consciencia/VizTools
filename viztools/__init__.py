@@ -25,7 +25,6 @@ import six
 import copy
 import json
 import chardet
-import datetime
 import threading
 
 
