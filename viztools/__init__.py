@@ -25,6 +25,7 @@ import six
 import copy
 import json
 import chardet
+import datetime
 import threading
 
 
@@ -479,7 +480,8 @@ class VDiagram(VBase):
         self._enableLogs = True
 
     def setType(self, diagType):
-        suppTypes = ["line", "bar", "doughnut", "pie", "polarArea"]
+        suppTypes = ["line", "bar", "doughnut",
+                     "pie", "polarArea", "radar"]
         if diagType not in suppTypes:
             raise Exception("Invalid diagram type '%s'!" %
                             diagType)
@@ -608,6 +610,12 @@ class VDiagramPolarArea(VDiagramPieLike):
         self.setType("polarArea")
 
 
+class VDiagramRadar(VDiagramPieLike):
+    def __init__(self, title):
+        VDiagramPieLike.__init__(self, title)
+        self.setType("radar")
+
+
 class VDiagramLine(VDiagram):
     def __init__(self, title, xtitle, ytitle):
         VDiagram.__init__(self, title, xtitle, ytitle)
@@ -618,3 +626,40 @@ class VDiagramBar(VDiagram):
     def __init__(self, title, xtitle, ytitle):
         VDiagram.__init__(self, title, xtitle, ytitle)
         self.setType("bar")
+
+
+class VDiagramCandleStick(VBase):
+    def __init__(self, title):
+        VBase.__init__(self, "vDiagramCandleStick")
+        self._title = title
+        self._dataset = []
+        self._enableLogs = False
+
+    def addChild(self, child):
+        raise Exception("You cant add children to this node!")
+
+    def enableLogs(self):
+        self._enableLogs = True
+
+    def addSingleDataset(self, x, y):
+        if self._dataset != []:
+            raise Exception("Dataset already set!")
+        if len(x) != len(y):
+            raise Exception("Either missing some X points or Y points!")
+        for i, timestamp in enumerate(x):
+            point = y[i]
+            self._dataset.append({
+                "x": timestamp.strftime("%d.%m.%Y"),
+                "y": [point["open"],
+                      point["high"],
+                      point["low"],
+                      point["close"]]
+            })
+
+    def beforeRender(self):
+        self.params("DIAGRAM_TITLE",
+                    json.dumps(self._title))
+        self.params("DATASET",
+                    json.dumps(self._dataset))
+        self.params("ENABLE_LOGS",
+                    json.dumps(self._enableLogs))

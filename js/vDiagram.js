@@ -31,10 +31,11 @@ VizTools.Diagram = {
         return obj;
     },
 
-    isSingleDiag() {
+    isPieLikeDiag() {
         return (this.diagType == "polarArea"
                 || this.diagType == "doughnut"
-                || this.diagType == "pie");
+                || this.diagType == "pie"
+                || this.diagType == "radar");
     },
 
     createDataset() {
@@ -45,7 +46,7 @@ VizTools.Diagram = {
             var m = this.datasetMeta[i];
             pairs = [];
 
-            if (this.isSingleDiag()) {
+            if (this.isPieLikeDiag()) {
                 pairs = d.y;
             } else {
                 for (var y = 0; y < d.x.length; ++y) {
@@ -68,7 +69,7 @@ VizTools.Diagram = {
                 result.lineTension = 0;
             }
 
-            if (this.isSingleDiag()) {
+            if (this.isPieLikeDiag()) {
                 result.fill = undefined;
                 result.lineTension = undefined;
             }
@@ -80,7 +81,7 @@ VizTools.Diagram = {
     },
 
     createScales() {
-        if (this.isSingleDiag()) {
+        if (this.isPieLikeDiag()) {
             return {};
         } else {
             return {
