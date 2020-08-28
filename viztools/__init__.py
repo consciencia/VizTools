@@ -560,30 +560,23 @@ class VDiagram(VBase):
                     json.dumps(self._enableLogs))
 
 
-class VDiagramSingle(VDiagram):
+class VDiagramPieLike(VDiagram):
     def __init__(self, title):
         VDiagram.__init__(self, title, "", "")
 
-    def setType(self, diagType):
-        suppTypes = ["doughnut", "pie", "polarArea"]
-        if diagType not in suppTypes:
-            raise Exception("Invalid diagram type '%s'!" %
-                            diagType)
-        VDiagram.setType(self, diagType)
+    def addSingleDataset(self, labels, vals, bgColors=None, borderColors=None):
+        if len(self.getLabels()) != 0:
+            raise Exception("Labels already set!")
+        self.setLabels(labels)
+        self.addDataset(vals, bgColors, borderColors)
 
-    def addSingleDataset(self, x, y, bgColors=None, borderColors=None):
-        self.addDataset(x, y, bgColors, borderColors)
-
-    def addDataset(self, x, y, bgColors=None, borderColors=None):
-        if bgColors is not None and len(y) != len(bgColors):
+    def addDataset(self, vals, bgColors=None, borderColors=None):
+        if bgColors is not None and len(vals) != len(bgColors):
             raise Exception("Invalid input!")
-        if borderColors is not None and len(y) != len(borderColors):
+        if borderColors is not None and len(vals) != len(borderColors):
             raise Exception("Invalid input!")
         labels = self.getLabels()
-        if len(labels) == 0:
-            self.setLabels(x)
-            labels = self.getLabels()
-        if len(y) != len(labels):
+        if len(vals) != len(labels):
             raise Exception("Invalid input!")
         if bgColors is None:
             bgColors = [stringToColor(x) for x in labels]
@@ -591,19 +584,37 @@ class VDiagramSingle(VDiagram):
             borderColors = [stringToColor(x) for x in labels]
         VDiagram.addDataset(self,
                             None,
-                            y,
+                            vals,
                             "",
                             bgColors,
                             borderColors)
 
 
-class VDiagramMulti(VDiagram):
+class VDiagramDoughnut(VDiagramPieLike):
+    def __init__(self, title):
+        VDiagramPieLike.__init__(self, title)
+        self.setType("doughnut")
+
+
+class VDiagramPie(VDiagramPieLike):
+    def __init__(self, title):
+        VDiagramPieLike.__init__(self, title)
+        self.setType("pie")
+
+
+class VDiagramPolarArea(VDiagramPieLike):
+    def __init__(self, title):
+        VDiagramPieLike.__init__(self, title)
+        self.setType("polarArea")
+
+
+class VDiagramLine(VDiagram):
     def __init__(self, title, xtitle, ytitle):
         VDiagram.__init__(self, title, xtitle, ytitle)
+        self.setType("line")
 
-    def setType(self, diagType):
-        suppTypes = ["line", "bar"]
-        if diagType not in suppTypes:
-            raise Exception("Invalid diagram type '%s'!" %
-                            diagType)
-        VDiagram.setType(self, diagType)
+
+class VDiagramBar(VDiagram):
+    def __init__(self, title, xtitle, ytitle):
+        VDiagram.__init__(self, title, xtitle, ytitle)
+        self.setType("bar")

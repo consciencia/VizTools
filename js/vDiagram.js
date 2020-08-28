@@ -57,11 +57,11 @@ VizTools.Diagram = {
             }
 
             var result = {
-	            label: m.label,
-	            backgroundColor: m.backgroundColor,
-	            borderColor: m.borderColor,
+	              label: m.label,
+	              backgroundColor: m.backgroundColor,
+	              borderColor: m.borderColor,
                 data: pairs,
-	            fill: m.fill,
+	              fill: m.fill,
             };
 
             if (!m.interpolation) {
@@ -81,66 +81,64 @@ VizTools.Diagram = {
 
     createScales() {
         if (this.isSingleDiag()) {
-            return {
-	            ticks: {
-		            beginAtZero: true
-	            },
-	            reverse: false
-            };
+            return {};
         } else {
             return {
-	            xAxes: [{
-		            display: true,
-		            scaleLabel: {
-			            display: true,
-			            labelString: this.xTitle
-		            }
-	            }],
-	            yAxes: [{
-		            display: true,
-		            scaleLabel: {
-			            display: true,
-			            labelString: this.yTitle
-		            },
-                    ticks: {
-		                beginAtZero: true
-	                }
-	            }]
+	              x: {
+		                display: true,
+		                scaleLabel: {
+			                  display: true,
+			                  labelString: this.xTitle
+		                }
+	              },
+	              y: {
+		                display: true,
+		                scaleLabel: {
+			                  display: true,
+			                  labelString: this.yTitle
+		                },
+                    beginAtZero: true
+	              }
             };
         }
     },
 
     createConfig(targetDatasets, scales) {
         return {
-	        type: this.diagType,
-	        data: {
+	          type: this.diagType,
+	          data: {
                 labels: this.datasetLabels,
-		        datasets: targetDatasets
-	        },
-	        options: {
-		        responsive: true,
+		            datasets: targetDatasets
+	          },
+	          options: {
+		            responsive: true,
                 legend: {
-			        position: "right",
-		        },
-		        title: {
-			        display: true,
-			        text: this.diagramTitle
-		        },
-		        tooltips: {
-			        mode: "index",
-			        intersect: false,
-		        },
-		        hover: {
+			              position: "right",
+		            },
+		            title: {
+			              display: true,
+			              text: this.diagramTitle
+		            },
+		            tooltips: {
+			              mode: "index",
+			              intersect: false,
+		            },
+		            hover: {
                     mode: "point",
-			        intersect: true
-		        },
-		        scales: scales
-	        }
+			              intersect: true
+		            },
+		            scales: scales
+	          }
         };
     },
 
     generate(config) {
         var $canvas = this.$root.find("canvas");
+
+        $canvas.css({
+            width: "100%",
+        });
+        $canvas.height($canvas.width() / 2);
 
         if (this.enableLogs) {
             console.log(config);
