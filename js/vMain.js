@@ -22,6 +22,27 @@ var VizTools = window.VizTools || {
             $element.html(originalHtml);
 
             return linePositions.length;
+        },
+        Thunk: {
+            create(cb) {
+                var obj = {
+                    cb,
+                    val: undefined
+                };
+                obj.__proto__ = VizTools.Utils.Thunk;
+
+                return obj;
+            },
+
+            force() {
+                if (this.val != undefined) {
+                    return this.val;
+                } else {
+                    this.val = this.cb();
+
+                    return this.val;
+                }
+            }
         }
     }
 };

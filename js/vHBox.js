@@ -14,7 +14,7 @@ VizTools.HBox = {
         percentagePerItem = percentagePerItem.toString() + "%";
 
         for (var i = 0; i < obj.children.length; ++i) {
-            var child = obj.children[i];
+            var child = obj.children[i].force();
             var $helperNode =
                 $("<div class='viztools_vhbox_helper' style='width: "
                   + percentagePerItem

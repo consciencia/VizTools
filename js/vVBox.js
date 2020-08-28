@@ -10,7 +10,7 @@ VizTools.VBox = {
         obj.$root.attr("id", renderName);
 
         for (var i = 0; i < obj.$children.length; ++i) {
-            var child = obj.$children[i];
+            var child = obj.$children[i].force();
             var childDomNode = child["node"];
             var $helperNode =
                 $("<div class=\"viztools_vvbox_helper\"></div>");

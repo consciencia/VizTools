@@ -45,7 +45,7 @@ VizTools.Menu = {
                     $contentBox[0].removeChild($contentBox[0].firstChild);
                 }
 
-                $contentBox.append(obj.children[index].node);
+                $contentBox.append(obj.children[index].force().node);
             });
 
             $ul.append($li);
@@ -59,7 +59,7 @@ VizTools.Menu = {
         }
 
         if (defaultIndex >= 0) {
-            $contentBox.append(obj.children[defaultIndex].node);
+            $contentBox.append(obj.children[defaultIndex].force().node);
         }
 
         return obj;

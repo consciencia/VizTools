@@ -53,7 +53,7 @@ VizTools.Style = {
 };
 /* %} %ENDEXPORT% */
 
-styleObj = VizTools.Style.create($CHILDREN[0].node,
+styleObj = VizTools.Style.create($CHILDREN[0].force().node,
                                  %STYLE%,
                                  %SELECTOR%,
                                  %NOUPDATES%);

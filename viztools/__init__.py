@@ -296,7 +296,7 @@ class VMain(VBase):
                 self._mergeJsFragments(childJsFragments, child["jsFragments"])
                 childCss += child["css"]
                 childExprs += "var node = " + child["expr"] + ";\n"
-                childExprs += "$(document.body).append(node[\"node\"]);\n"
+                childExprs += "$(document.body).append(node.force().node);\n"
             childJsFragmentsStr = ""
             for fragment in childJsFragments:
                 childJsFragmentsStr += fragment + "\n\n"
