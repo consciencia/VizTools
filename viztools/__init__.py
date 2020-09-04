@@ -25,6 +25,7 @@ import six
 import copy
 import json
 import chardet
+import datetime
 import threading
 
 
@@ -647,8 +648,14 @@ class VDiagramCandleStick(VBase):
             raise Exception("Either missing some X points or Y points!")
         for i, timestamp in enumerate(x):
             point = y[i]
+            if isinstance(timestamp, datetime.datetime):
+                x = timestamp.strftime("%d.%m.%Y"),
+            elif isinstance(timestamp, (type(""), type(u""))):
+                x = timestamp
+            else:
+                x = str(timestamp)
             self._dataset.append({
-                "x": timestamp.strftime("%d.%m.%Y"),
+                "x": x,
                 "y": [point["open"],
                       point["high"],
                       point["low"],
