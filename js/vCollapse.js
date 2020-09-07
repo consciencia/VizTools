@@ -22,28 +22,53 @@
 /* %ENDLICENSE% */
 
 /* %EXPORT% %{ */
-VizTools.Heading = {
-    create(node, linkRef) {
+VizTools.Collapse = {
+    create(root , child) {
         var obj = {
-            node: node,
-            linkRef: linkRef
+            $root: root,
+            child: child,
+            $header: root.find(".header"),
+            $body: root.find(".body"),
+            collapsed: true
         };
-        obj.__proto__ = VizTools.Heading;
+        obj.__proto__ = VizTools.Collapse;
 
-        if (obj.linkRef.length) {
-            var $link = $("<a></a>")
-            $link.attr("href", obj.linkRef)
-            $link.attr("target", "_blank")
-            $link.append(obj.node.contents())
-            obj.node.empty()
-            obj.node.append($link)
-        }
+        obj.$header.on("click", obj.toggle.bind(obj));
 
         return obj;
+    },
+
+    toggle() {
+        if (this.collapsed) {
+            this.collapsed = false;
+            this.$body.append(this.child.force().node);
+            this.$header.css({
+                "border-bottom": "1px solid black"
+            });
+            this.$body.css({
+                padding: "5px"
+            });
+            this.$body.animate({
+                height: ($(this.child.force().node).height()
+                         + 10
+                         + "px")
+            });
+        } else {
+            this.collapsed = true;
+            this.$body.animate({
+                height: "0px"
+            }, () => {
+                this.$header.css({
+                    "border-bottom": "0px solid black"
+                });
+                this.$body.css({
+                    padding: "0px"
+                });
+                this.$body.empty();
+            });
+        }
     }
 };
 /* %} %ENDEXPORT% */
 
-heading = VizTools.Heading.create($NODE,
-                                  %HEADING_HREF%);
-$NODE = heading.node;
+var collapse = VizTools.Collapse.create($NODE, $CHILDREN[0]);

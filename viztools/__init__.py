@@ -63,7 +63,7 @@ class VBase:
         "stats": {}
     }
 
-    def __init__(self, name, resourceRoot=None):
+    def __init__(self, name, resourceRoot=None, detached=None):
         self._name = name
         self._resourceRoot = resourceRoot
         self._html = self._loadResource("html", name)
@@ -75,7 +75,7 @@ class VBase:
         self._instId = self._genId()
         self._renderName = self._genRenderName(self._instId)
         self._usedMark = False
-        if self._html is None and self._js is None:
+        if not detached and self._html is None and self._js is None:
             raise Exception("One of following must be provided [js, html]!")
         self._html = self._html or ""
         self._css = self._css or ""
@@ -163,6 +163,15 @@ class VBase:
             fragments[rawFragment.strip()] = True
         return re.sub(fragmentRegex, "", self._js), fragments
 
+    def _removeLicense(self, data):
+        regexp = "\\/\\*\\s+%ENDLICENSE%\\s*\\*\\/"
+        frags = re.split(regexp, data)
+        if len(frags) > 2:
+            raise Exception("Too many %ENDLICENSE% statements!")
+        elif len(frags) < 2:
+            return data
+        return frags[1]
+
     def _mergeJsFragments(self, destFrags, sourceFrags):
         for fragment in sourceFrags:
             destFrags[fragment] = True
@@ -218,6 +227,8 @@ class VBase:
         localHtml = self._html.replace("\r\n", "")
         localHtml = localHtml.replace("\n", "")
         localHtml = localHtml.replace("\"", "\\\"")
+        self._js = self._removeLicense(self._js)
+        self._baseJs = self._removeLicense(self._baseJs)
         localJs, localJsFragments = self._extractJsFragments()
         self._mergeJsFragments(childJsFragments, localJsFragments)
         jsInjectObj = {
@@ -304,7 +315,7 @@ class VMain(VBase):
             return self._inject(self._html, {
                 "JS_LIBS": self._jslibraries,
                 "CSS_LIBS": self._csslibraries,
-                "CUSTOM_JS": self._js,
+                "CUSTOM_JS": self._removeLicense(self._js),
                 "CUSTOM_CSS": self._css,
                 "CHILD_JS": childJsFragmentsStr + childJs,
                 "CHILD_CSS": childCss,
@@ -363,6 +374,45 @@ class VVBox(VBase):
         VBase.__init__(self, "vVBox")
 
 
+class VVoid(VBase):
+    def __init__(self):
+        VBase.__init__(self, "vVoid")
+
+
+class VGrid(VBase):
+    def __init__(self, x, y=None):
+        VBase.__init__(self, "vGrid", None, True)
+        self._grid = []
+        if type(x) is int and type(y) is int:
+            for i in range(x):
+                self._grid.append([None] * y)
+        elif type(x) is list and y is None:
+            for cnt in x:
+                self._grid.append([None] * cnt)
+        else:
+            raise Exception("Invalid arguments!")
+
+    def addChild():
+        raise Exception("You cant add children this way!")
+
+    def at(self, x, y, child=None):
+        if child is not None:
+            self._grid[x][y] = child
+        return self._grid[x][y]
+
+    def render(self):
+        vbox = VVBox()
+        for row in self._grid:
+            hbox = VHBox()
+            for column in row:
+                if column is None:
+                    hbox.addChild(VVoid())
+                else:
+                    hbox.addChild(column)
+            vbox.addChild(hbox)
+        return vbox.render()
+
+
 class VLabel(VBase):
     def __init__(self, content):
         VBase.__init__(self, "vLabel")
@@ -400,6 +450,23 @@ class VHeading(VBase):
     def addChild(self, child):
         raise Exception("You cant add more children nodes to " +
                         "heading node!")
+
+
+class VCollapse(VBase):
+    def __init__(self, title):
+        VBase.__init__(self, "vCollapse")
+        self._title = title
+        self._components = []
+
+    def addChild(self, child):
+        self._components.append(child)
+
+    def beforeRender(self):
+        self.params("COLLAPSE_TITLE", self._title)
+        vbox = VVBox()
+        for component in self._components:
+            vbox.addChild(component)
+        VBase.addChild(self, vbox)
 
 
 class VMenu(VBase):
