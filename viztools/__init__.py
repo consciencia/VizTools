@@ -9,8 +9,8 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -22,11 +22,13 @@
 import os
 import re
 import six
+import time
 import copy
 import json
 import chardet
 import datetime
 import threading
+import http.server
 
 
 __author__ = "Consciencia"
@@ -37,12 +39,12 @@ def thisdir():
 
 
 def stringToColor(chars):
-    hash = 0;
+    hash = 0
     for char in chars:
-        hash = ord(char) + ((hash << 5) - hash);
-    color = "#";
+        hash = ord(char) + ((hash << 5) - hash)
+    color = "#"
     for i in range(3):
-        value = (hash >> (i * 8)) & 0xFF;
+        value = (hash >> (i * 8)) & 0xFF
         color += hex(value)[2:].zfill(2)
     return color
 
@@ -53,6 +55,389 @@ def sanitizeHtml(code):
     code = code.replace("\n", "<br>")
     # TODO: Remove <script> and <style> tags.
     return code
+
+
+class Series:
+    def __init__(self,
+                 x=None,
+                 y=None,
+                 xlabel="X",
+                 ylabel="Y",
+                 borderColor=None,
+                 fillColor=None):
+        if x is None:
+            x = []
+        if y is None:
+            y = []
+        if len(x) != len(y):
+            raise Exception("Invalid input!")
+        self._x = copy.deepcopy(x)
+        self._y = copy.deepcopy(y)
+        self._xlabel = xlabel
+        self._ylabel = ylabel
+        self._borderColor = borderColor
+        self._fillColor = fillColor
+        self._pad = 15
+        if self._borderColor is None:
+            self._borderColor = stringToColor(self._ylabel)
+        if self._fillColor is None:
+            self._fillColor = stringToColor(self._ylabel)
+
+    def xlabel(self, val=None):
+        if val is not None:
+            if not isinstance(val, (type(""), type(u""))):
+                raise Exception("Invalid input!")
+            self._xlabel = val
+        else:
+            return self._xlabel
+
+    def ylabel(self, val=None):
+        if val is not None:
+            if not isinstance(val, (type(""), type(u""))):
+                raise Exception("Invalid input!")
+            self._ylabel = val
+        else:
+            return self._ylabel
+
+    def borderColor(self, val=None):
+        if val is not None:
+            if not isinstance(val, (list, type(""), type(u""))):
+                raise Exception("Invalid input!")
+            self._borderColor = val
+        else:
+            return self._borderColor
+
+    def fillColor(self, val=None):
+        if val is not None:
+            if not isinstance(val, (list, type(""), type(u""))):
+                raise Exception("Invalid input!")
+            self._fillColor = val
+        else:
+            return self._fillColor
+
+    def x(self, vals=None, idx=None):
+        if vals is not None:
+            if idx is None:
+                if not isinstance(vals, list):
+                    raise Exception("Invalid vals!")
+                vals = [v.strftime("%d.%m.%Y")
+                        for v in vals
+                        if isinstance(v, datetime.datetime)]
+                for v in vals:
+                    if not isinstance(v, (int, float, type(""), type(u""))):
+                        raise Exception("Invalid vals!")
+                if len(vals) == len(self._y) or len(self._y) == 0:
+                    self._x = copy.deepcopy(vals)
+                else:
+                    raise Exception("Invalid vals!")
+            else:
+                if isinstance(vals, datetime.datetime):
+                    vals = vals.strftime("%d.%m.%Y"),
+                if not isinstance(vals, (int, float, type(""), type(u""))):
+                    raise Exception("Invalid vals!")
+                self._x[idx] = vals
+        elif idx is None:
+            return copy.deepcopy(self._x)
+        else:
+            return self._x[idx]
+
+    def y(self, vals=None, idx=None):
+        if vals is not None:
+            if idx is None:
+                if not isinstance(vals, list):
+                    raise Exception("Invalid vals!")
+                for v in vals:
+                    if not isinstance(v, (int, float)):
+                        raise Exception("Invalid vals!")
+                if len(vals) == len(self._x):
+                    self._y = copy.deepcopy(vals)
+                else:
+                    raise Exception("Invalid vals!")
+            else:
+                if not isinstance(vals, (int, float)):
+                    raise Exception("Invalid vals!")
+                self._y[idx] = vals
+        elif idx is None:
+            return copy.deepcopy(self._y)
+        else:
+            return self._y[idx]
+
+    def arraysInPair(self):
+        return (self.x(), self.y())
+
+    def pairsInArray(self):
+        result = []
+        for i in range(len(self._x)):
+            result.append((self._x[i], self._y[i]))
+        return result
+
+    def push(self, x, y):
+        self._x.append(x)
+        self._y.append(y)
+
+    def pop(self):
+        if len(self._x) == 0:
+            return None
+        return (self._x.pop(-1), self._y.pop(-1))
+
+    def clone(self):
+        return copy.deepcopy(self)
+
+    def clear(self):
+        self._x = []
+        self._y = []
+
+    def __len__(self):
+        return len(self._x)
+
+    def __iter__(self):
+        for i in range(len(self)):
+            yield (self.x(None, i), self.y(None, i))
+
+    def __getitem__(self, idx):
+        return (self.x(None, idx), self.y(None, idx))
+
+    def __setitem__(self, idx, pair):
+        self.x(pair[0], idx)
+        self.y(pair[1], idx)
+
+    def __str__(self):
+        acc = ""
+        acc += self._xlabel.ljust(self._pad) + "| " + self._ylabel + "\n"
+        for i in range(len(self._x)):
+            acc += str(self._x[i]).ljust(self._pad)
+            acc += "| " + str(self._y[i]) + "\n"
+        return acc
+
+
+class MultiSeries:
+    def __init__(self, serieses=None):
+        if serieses is None:
+            serieses = []
+        if type(serieses) is list:
+            for series in serieses:
+                if not isinstance(series, Series):
+                    raise Exception("Invalid input")
+        elif isinstance(serieses, Series):
+            serieses = [serieses]
+        else:
+            raise Exception("Invalid input")
+        self._serieses = serieses
+        self._pad = 15
+        self.check()
+
+    def content(self):
+        return self._serieses
+
+    def check(self):
+        if len(self._serieses) > 1:
+            x = (self._serieses[0].xlabel(), self._serieses[0].x())
+            for series in self._serieses[1:]:
+                if x != (series.xlabel(), series.x()):
+                    raise Exception("Non matching series found (%s != %s)!"
+                                    % (x, (series.xlabel(), series.x())))
+
+    def add(self, series):
+        if not isinstance(series, Series):
+            raise Exception("Invalid input")
+        self._serieses.append(series)
+        self.check()
+
+    def xlabel(self, val=None):
+        if val is not None:
+            for series in self._serieses:
+                series.xlabel(val)
+        elif len(self._serieses):
+            return self._serieses[0].xlabel()
+        else:
+            return "<no data>"
+
+    def ylabels(self, vals=None, idx=None):
+        if vals is not None:
+            if idx is None:
+                if not isinstance(vals, list):
+                    raise Exception("Invalid input!")
+                for i, series in enumerate(self._serieses):
+                    series.ylabel(vals[i])
+            else:
+                self._serieses[idx].ylabel(vals)
+        elif idx is not None:
+            return self._serieses[idx].ylabel()
+        else:
+            return [series.ylabel() for series in self._serieses]
+
+    def borderColors(self, vals=None, idx=None):
+        if vals is not None:
+            if idx is None:
+                if not isinstance(vals, list):
+                    raise Exception("Invalid input!")
+                for i, series in enumerate(self._serieses):
+                    series.borderColor(vals[i])
+            else:
+                self._serieses[idx].borderColor(vals)
+        elif idx is not None:
+            return self._serieses[idx].borderColor()
+        else:
+            return [series.borderColor() for series in self._serieses]
+
+    def fillColors(self, vals=None, idx=None):
+        if vals is not None:
+            if idx is None:
+                if not isinstance(vals, list):
+                    raise Exception("Invalid input!")
+                for i, series in enumerate(self._serieses):
+                    series.fillColor(vals[i])
+            else:
+                self._serieses[idx].fillColor(vals)
+        elif idx is not None:
+            return self._serieses[idx].fillColor()
+        else:
+            return [series.fillColor() for series in self._serieses]
+
+    def x(self, vals=None, idx=None):
+        if vals is not None:
+            for series in self._serieses:
+                series.x(vals, idx)
+        else:
+            return self._serieses[0].x(None, idx)
+
+    def y(self, vals=None, idx=None):
+        if vals is not None:
+            for i, series in enumerate(self._serieses):
+                series.y(vals[i], idx)
+        else:
+            return [series.y(None, idx)
+                    for series in self._serieses]
+
+    def arraysInPair(self):
+        return (self.x(), self.y())
+
+    def pairsInArray(self):
+        result = []
+        for i, x in enumerate(self.x()):
+            result.append((x, self.y(None, i)))
+        return result
+
+    def push(self, x, y):
+        for i, series in enumerate(self._serieses):
+            series.push(x, y[i])
+
+    def pop(self):
+        result = []
+        for series in self._serieses:
+            result.append(series.pop())
+        if len(result) == 0 or result[0] is None:
+            return None
+        vals = []
+        for _, y in result:
+            vals.append(y)
+        return (result[0][0], vals)
+
+    def clone(self):
+        return copy.deepcopy(self)
+
+    def clear(self):
+        for series in self._serieses:
+            series.clear()
+
+    def __len__(self):
+        if len(self._serieses) > 0:
+            return len(self._serieses[0])
+        return 0
+
+    def __iter__(self):
+        for i in range(len(self)):
+            yield (self.x(None, i), self.y(None, i))
+
+    def __getitem__(self, idx):
+        return (self.x(None, idx), self.y(None, idx))
+
+    def __setitem__(self, idx, pair):
+        self.x(pair[0], idx)
+        self.y(pair[1], idx)
+
+    def __str__(self):
+        acc = ""
+        memo = {}
+        if len(self._serieses):
+            acc += self._serieses[0].xlabel().ljust(self._pad)
+            for series in self._serieses:
+                label = series.ylabel()
+                if label in memo:
+                    memo[label] += 1
+                    label = label + ("[%s]" % memo[label])
+                else:
+                    memo[label] = 0
+                acc += ("| " + label).ljust(self._pad)
+            acc += "\n"
+            for i, x in enumerate(self._serieses[0].x()):
+                acc += str(x).ljust(self._pad)
+                for series in self._serieses:
+                    acc += ("| %s" % series.y(None, i)).ljust(self._pad)
+                acc += "\n"
+        return acc
+
+
+class HttpHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        # self.headers
+        if self.path not in HttpServer.ROUTES:
+            self.send_error(404,
+                            "Unknown route",
+                            "Not found handler for '%s'!" % self.path)
+        else:
+            route = HttpServer.ROUTES[self.path]
+            if hasattr(route, "clone"):
+                route = route.clone()
+            response = route.render()
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(response.encode("utf-8"))
+
+
+class HttpServer(threading.Thread):
+    ROUTES = {}
+    INST = None
+
+    def __init__(self, addr=("127.0.0.1", 10000), blocking=False):
+        if HttpServer.INST is not None:
+            raise Exception("HttpServer already exists!")
+        self._addr = addr
+        self._blocking = blocking
+        self._server = http.server.ThreadingHTTPServer(addr, HttpHandler)
+        threading.Thread.__init__(self)
+        self.setDaemon(True)
+        HttpServer.INST = self
+
+    def start(self):
+        threading.Thread.start(self)
+        if self._blocking:
+            while True:
+                time.sleep(1)
+
+    def run(self):
+        self._server.serve_forever()
+
+    @staticmethod
+    def uriPrefix():
+        return "http://%s:%s/" % HttpServer.INST._addr
+
+    @staticmethod
+    def addRoute(path, handler):
+        if not isinstance(path, (type(""), type(u""))):
+            raise Exception("Path must be string!")
+        if not hasattr(handler, "render"):
+            raise Exception("Handler has no method \"render\"!")
+        if not callable(handler.render) :
+            raise Exception("Attribute \"render\" is not callable!")
+        HttpServer.ROUTES[path] = handler
+
+    @staticmethod
+    def removeRoute(path):
+        if not isinstance(path, (type(""), type(u""))):
+            raise Exception("Path must be string!")
+        del HttpServer.ROUTES[path]
 
 
 class VBase:
@@ -92,7 +477,7 @@ class VBase:
     def _inferEncoding(self, payload):
         try:
             payload = payload.decode("utf-8")
-        except:
+        except Exception:
             encoding = chardet.detect(payload)["encoding"]
             if encoding:
                 payload = payload.decode(encoding)
@@ -521,6 +906,20 @@ class VTableBrowser(VBase):
             r[key] = sanitizeHtml(str(r[key]))
         self._rows.append(r)
 
+    def setDataset(self, series):
+        if isinstance(series, Series):
+            series = MultiSeries(series)
+        if not isinstance(series, MultiSeries):
+            raise Exception("Invalid input!")
+        keys = [series.xlabel()] + series.ylabels()
+        self.registerKeys(keys)
+        for x, ys in series:
+            row = {}
+            row[keys[0]] = x
+            for i, y in enumerate(ys):
+                row[keys[i + 1]] = y
+            self.addRow(row)
+
     def beforeRender(self):
         self.params("TABLE_ROWS",
                     json.dumps(self._rows))
@@ -529,7 +928,7 @@ class VTableBrowser(VBase):
 
 
 class VDiagram(VBase):
-    def __init__(self, title, xtitle, ytitle):
+    def __init__(self, title, xtitle="X", ytitle="Y"):
         VBase.__init__(self, "vDiagram")
         self._title = title
         self._xtitle = xtitle
@@ -541,7 +940,7 @@ class VDiagram(VBase):
         self._enableLogs = False
 
     def addChild(self, child):
-        raise Exception("You cant add children to this node!")
+        raise Exception("You can't add children to this node!")
 
     def enableLogs(self):
         self._enableLogs = True
@@ -554,61 +953,25 @@ class VDiagram(VBase):
                             diagType)
         self._type = diagType
 
-    def setLabels(self, labels):
-        if type(labels) is not list:
-            raise Exception("Input parameter must be list!")
-        if len(labels) == 0:
-            raise Exception("It makes no sense to pass 0 labels!")
-        self._labels = labels
-
-    def getLabels(self):
-        return self._labels
-
-    def addSingleDataset(self, x, y, label, bgColor=None,
-                         borderColor=None, fill=False,
-                         interpolation=False):
-        if self._labels != []:
-            raise Exception("Labels already set!")
-        self.setLabels(x)
-        self.addDataset(x,
-                        y,
-                        label,
-                        bgColor,
-                        borderColor,
-                        fill,
-                        interpolation)
-
-    def addDataset(self, x, y, label, bgColor=None,
-                   borderColor=None, fill=False,
-                   interpolation=False):
-        if self._type == "line" or self._type == "bar":
-            if type(x) is not list or type(y) is not list:
-                raise Exception("Invalid input!")
-            if len(x) != len(y):
-                raise Exception("Sizes dont match!")
-            for v in x:
-                if v not in self._labels:
-                    print(json.dumps(self._labels, indent=4))
-                    raise Exception("Label '%s' not found in labels!" % v)
-        else:
-            if len(y) != len(self._labels):
-                raise Exception("Sizes dont match!")
-        self._dataset.append({
-            "x": x,
-            "y": y
-        })
-        autoColor = stringToColor(label)
-        if bgColor is None:
-            bgColor = autoColor
-        if borderColor is None:
-            borderColor = autoColor
-        self._datasetMeta.append({
-            "label": label,
-            "backgroundColor": bgColor,
-            "borderColor": borderColor,
-            "fill": fill,
-            "interpolation": interpolation
-        })
+    def setDataset(self, series):
+        if isinstance(series, Series):
+            series = MultiSeries(series)
+        if not isinstance(series, MultiSeries):
+            raise Exception("Parameter \"series\" must be either "
+                            "Series or MultiSeries!")
+        self._labels = series.x()
+        for s in series.content():
+            self._dataset.append({
+                "x": s.x(),
+                "y": s.y()
+            })
+            self._datasetMeta.append({
+                "label": s.ylabel(),
+                "backgroundColor": s.fillColor(),
+                "borderColor": s.borderColor(),
+                "fill": False,
+                "interpolation": False
+            })
 
     def beforeRender(self):
         self.params("DIAG_TYPE",
@@ -629,57 +992,27 @@ class VDiagram(VBase):
                     json.dumps(self._enableLogs))
 
 
-class VDiagramPieLike(VDiagram):
+class VDiagramDoughnut(VDiagram):
     def __init__(self, title):
-        VDiagram.__init__(self, title, "", "")
-
-    def addSingleDataset(self, labels, vals, bgColors=None, borderColors=None):
-        if len(self.getLabels()) != 0:
-            raise Exception("Labels already set!")
-        self.setLabels(labels)
-        self.addDataset(vals, bgColors, borderColors)
-
-    def addDataset(self, vals, bgColors=None, borderColors=None):
-        if bgColors is not None and len(vals) != len(bgColors):
-            raise Exception("Invalid input!")
-        if borderColors is not None and len(vals) != len(borderColors):
-            raise Exception("Invalid input!")
-        labels = self.getLabels()
-        if len(vals) != len(labels):
-            raise Exception("Invalid input!")
-        if bgColors is None:
-            bgColors = [stringToColor(x) for x in labels]
-        if borderColors is None:
-            borderColors = [stringToColor(x) for x in labels]
-        VDiagram.addDataset(self,
-                            None,
-                            vals,
-                            "",
-                            bgColors,
-                            borderColors)
-
-
-class VDiagramDoughnut(VDiagramPieLike):
-    def __init__(self, title):
-        VDiagramPieLike.__init__(self, title)
+        VDiagram.__init__(self, title)
         self.setType("doughnut")
 
 
-class VDiagramPie(VDiagramPieLike):
+class VDiagramPie(VDiagram):
     def __init__(self, title):
-        VDiagramPieLike.__init__(self, title)
+        VDiagram.__init__(self, title)
         self.setType("pie")
 
 
-class VDiagramPolarArea(VDiagramPieLike):
+class VDiagramPolarArea(VDiagram):
     def __init__(self, title):
-        VDiagramPieLike.__init__(self, title)
+        VDiagram.__init__(self, title)
         self.setType("polarArea")
 
 
-class VDiagramRadar(VDiagramPieLike):
+class VDiagramRadar(VDiagram):
     def __init__(self, title):
-        VDiagramPieLike.__init__(self, title)
+        VDiagram.__init__(self, title)
         self.setType("radar")
 
 
@@ -708,25 +1041,18 @@ class VDiagramCandleStick(VBase):
     def enableLogs(self):
         self._enableLogs = True
 
-    def addSingleDataset(self, x, y):
-        if self._dataset != []:
-            raise Exception("Dataset already set!")
-        if len(x) != len(y):
-            raise Exception("Either missing some X points or Y points!")
-        for i, timestamp in enumerate(x):
-            point = y[i]
-            if isinstance(timestamp, datetime.datetime):
-                x = timestamp.strftime("%d.%m.%Y"),
-            elif isinstance(timestamp, (type(""), type(u""))):
-                x = timestamp
-            else:
-                x = str(timestamp)
+    def setDataset(self, multiseries):
+        if not isinstance(multiseries, MultiSeries):
+            raise Exception("Parameter \"series\" must be either "
+                            "Series or MultiSeries!")
+        serieses = multiseries.content()
+        if len(serieses) != 4:
+            raise Exception("MultiSeries with four parts must be passed "
+                            "(open, high, low, close)!")
+        for x, ys in multiseries:
             self._dataset.append({
                 "x": x,
-                "y": [point["open"],
-                      point["high"],
-                      point["low"],
-                      point["close"]]
+                "y": ys
             })
 
     def beforeRender(self):
