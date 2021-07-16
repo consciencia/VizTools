@@ -12,6 +12,9 @@
     background-color: black;
     color: white;
     border: 1px solid black;
+    position: sticky;
+    top: 0; /* Required for the stickiness. */
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4);
 }
 
 .viztools_vtablebrowser table td {
