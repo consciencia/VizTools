@@ -35,7 +35,7 @@ VizTools.TableBrowser = {
         obj.$table.append(obj.$heading);
 
         obj.createHeadings();
-        obj.createRows();
+        obj.createRows(0);
 
         setTimeout(obj.resize.bind(obj), 100);
 
@@ -43,7 +43,7 @@ VizTools.TableBrowser = {
     },
 
     resize() {
-        if (this.$table.is(':visible')) {
+        if (this.$table.is(":visible")) {
             this.$table.find("td, th").each(function() {
                 var $cell = $(this);
 
@@ -66,8 +66,12 @@ VizTools.TableBrowser = {
         }
     },
 
-    createRows() {
-        for (var i = 0; i < this.tableRows.length; ++i) {
+    createRows(offset) {
+        var blksize = 200;
+
+        for (var i = offset;
+             i < offset + blksize && i < this.tableRows.length;
+             ++i) {
             var $row = $("<tr></tr>");
             this.$table.append($row);
 
@@ -92,6 +96,15 @@ VizTools.TableBrowser = {
                 }
             });
         }
+
+        var cb = this.createRows.bind(this);
+
+        // This ugly workaround is for browser inability to render
+        // large table at once. They just freeze and thats it.
+        // When we incrementally add small blocks of rows, browsers
+        // will surprisingly not freeze and render even very large
+        // tables.
+        setTimeout(() => cb(offset + blksize), 100);
     }
 };
 /* %} %ENDEXPORT% */
