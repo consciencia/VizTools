@@ -97,14 +97,16 @@ VizTools.TableBrowser = {
             });
         }
 
-        var cb = this.createRows.bind(this);
+        if (offset + blksize < this.tableRows.length) {
+            var cb = this.createRows.bind(this);
 
-        // This ugly workaround is for browser inability to render
-        // large table at once. They just freeze and thats it.
-        // When we incrementally add small blocks of rows, browsers
-        // will surprisingly not freeze and render even very large
-        // tables.
-        setTimeout(() => cb(offset + blksize), 100);
+            // This ugly workaround is for browser inability to render
+            // large table at once. They just freeze and thats it.
+            // When we incrementally add small blocks of rows, browsers
+            // will surprisingly not freeze and render even very large
+            // tables.
+            setTimeout(() => cb(offset + blksize), 100);
+        }
     }
 };
 /* %} %ENDEXPORT% */
