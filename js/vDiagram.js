@@ -61,6 +61,11 @@ VizTools.Diagram = {
                 || this.diagType == "radar");
     },
 
+    isScatterLikeDiag() {
+        return (this.diagType == "bubble"
+                || this.diagType == "scatter");
+    },
+
     createDataset() {
         var targetDatasets = [];
 
@@ -71,6 +76,14 @@ VizTools.Diagram = {
 
             if (this.isPieLikeDiag()) {
                 pairs = d.y;
+            } else if (this.isScatterLikeDiag()) {
+                for (var y = 0; y < d.x.length; ++y) {
+                    pairs.push({
+                        x: d.x[y],
+                        y: d.y[y],
+                        r: d.r[y]
+                    });
+                }
             } else {
                 for (var y = 0; y < d.x.length; ++y) {
                     pairs.push({
@@ -81,14 +94,14 @@ VizTools.Diagram = {
             }
 
             var result = {
-	              label: m.label,
-	              backgroundColor: m.backgroundColor,
-	              borderColor: m.borderColor,
+                label: m.label,
+                backgroundColor: m.backgroundColor,
+                borderColor: m.borderColor,
                 data: pairs,
-	              fill: m.fill,
+                fill: m.fill,
             };
 
-            if (!m.interpolation) {
+            if (!this.isScatterLikeDiag() && !m.interpolation) {
                 result.lineTension = 0;
             }
 
@@ -104,7 +117,7 @@ VizTools.Diagram = {
     },
 
     createScales() {
-        if (this.isPieLikeDiag()) {
+        if (this.isPieLikeDiag() || this.isScatterLikeDiag()) {
             return {};
         } else {
             return {

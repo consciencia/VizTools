@@ -78,6 +78,7 @@ class Series:
         self._borderColor = borderColor
         self._fillColor = fillColor
         self._pad = 15
+        self._radiuses = []
         if self._borderColor is None:
             self._borderColor = stringToColor(self._ylabel)
         if self._fillColor is None:
@@ -162,6 +163,27 @@ class Series:
         else:
             return self._y[idx]
 
+    def radiuses(self, vals=None, idx=None):
+        if vals is not None:
+            if idx is None:
+                if not isinstance(vals, list):
+                    raise Exception("Invalid vals!")
+                for v in vals:
+                    if not isinstance(v, int):
+                        raise Exception("Invalid vals!")
+                if len(vals) == len(self._x):
+                    self._radiuses = copy.deepcopy(vals)
+                else:
+                    raise Exception("Invalid vals!")
+            else:
+                if not isinstance(vals, int):
+                    raise Exception("Invalid vals!")
+                self._radiuses[idx] = vals
+        elif idx is None:
+            return copy.deepcopy(self._radiuses)
+        else:
+            return self._radiuses[idx]
+
     def arraysInPair(self):
         return (self.x(), self.y())
 
@@ -211,7 +233,7 @@ class Series:
 
 
 class MultiSeries:
-    def __init__(self, serieses=None):
+    def __init__(self, serieses=None, noCheck=False):
         if serieses is None:
             serieses = []
         if type(serieses) is list:
@@ -222,15 +244,18 @@ class MultiSeries:
             serieses = [serieses]
         else:
             raise Exception("Invalid input")
+        if not isinstance(noCheck, bool):
+            raise Exception("Invalid input")
         self._serieses = serieses
         self._pad = 15
+        self._noCheck = noCheck
         self.check()
 
     def content(self):
         return self._serieses
 
     def check(self):
-        if len(self._serieses) > 1:
+        if not self._noCheck and len(self._serieses) > 1:
             x = (self._serieses[0].xlabel(), self._serieses[0].x())
             for series in self._serieses[1:]:
                 if x != (series.xlabel(), series.x()):
@@ -947,7 +972,8 @@ class VDiagram(VBase):
 
     def setType(self, diagType):
         suppTypes = ["line", "bar", "doughnut",
-                     "pie", "polarArea", "radar"]
+                     "pie", "polarArea", "radar",
+                     "bubble"]
         if diagType not in suppTypes:
             raise Exception("Invalid diagram type '%s'!" %
                             diagType)
@@ -1026,6 +1052,34 @@ class VDiagramBar(VDiagram):
     def __init__(self, title, xtitle, ytitle):
         VDiagram.__init__(self, title, xtitle, ytitle)
         self.setType("bar")
+
+
+class VDiagramBubble(VDiagram):
+    def __init__(self, title, xtitle="X", ytitle="Y"):
+        VDiagram.__init__(self, title, xtitle, ytitle)
+        self.setType("bubble")
+
+    def setDataset(self, series):
+        if isinstance(series, Series):
+            series = MultiSeries(series)
+        if not isinstance(series, MultiSeries):
+            raise Exception("Parameter \"series\" must be either "
+                            "Series or MultiSeries!")
+        self._labels = []
+        for s in series.content():
+            radiuses = s.radiuses()
+            if len(radiuses) == 0:
+                radiuses = [3] * len(s.x())
+            self._dataset.append({
+                "x": s.x(),
+                "y": s.y(),
+                "r": radiuses
+            })
+            self._datasetMeta.append({
+                "label": s.ylabel(),
+                "backgroundColor": s.fillColor(),
+                "borderColor": s.borderColor()
+            })
 
 
 class VDiagramCandleStick(VBase):
