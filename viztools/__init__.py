@@ -793,12 +793,18 @@ class VGrid(VBase):
     def __init__(self, x, y=None):
         VBase.__init__(self, "vGrid", None, True)
         self._grid = []
+        self._list = None
+        self._width = None
         if type(x) is int and type(y) is int:
             for i in range(x):
                 self._grid.append([None] * y)
         elif type(x) is list and y is None:
             for cnt in x:
                 self._grid.append([None] * cnt)
+        elif type(x) is int and y is None:
+            self._grid = None
+            self._list = []
+            self._width = x
         else:
             raise Exception("Invalid arguments!")
 
@@ -806,20 +812,40 @@ class VGrid(VBase):
         raise Exception("You cant add children this way!")
 
     def at(self, x, y, child=None):
+        if self._grid is None:
+            raise Exception("You can't use this method "
+                            "when in list mode!")
         if child is not None:
             self._grid[x][y] = child
         return self._grid[x][y]
 
+    def push(self, child):
+        if self._list is None:
+            raise Exception("You need to be in list mode "
+                            "to use this method!")
+        self._list.append(child)
+
     def render(self):
         vbox = VVBox()
-        for row in self._grid:
-            hbox = VHBox()
-            for column in row:
-                if column is None:
-                    hbox.addChild(VVoid())
-                else:
-                    hbox.addChild(column)
-            vbox.addChild(hbox)
+        if self._grid is not None:
+            for row in self._grid:
+                hbox = VHBox()
+                for column in row:
+                    if column is None:
+                        hbox.addChild(VVoid())
+                    else:
+                        hbox.addChild(column)
+                vbox.addChild(hbox)
+        else:
+            while len(self._list) % self._width != 0:
+                self._list.append(VVoid())
+            hbox = None
+            for idx, child in enumerate(self._list):
+                if idx % self._width == 0:
+                    hbox = VHBox()
+                hbox.addChild(child)
+                if idx % self._width == self._width - 1:
+                    vbox.addChild(hbox)
         return vbox.render()
 
 
