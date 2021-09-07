@@ -25,6 +25,8 @@ import six
 import time
 import copy
 import json
+import math
+import random
 import chardet
 import datetime
 import threading
@@ -47,6 +49,14 @@ def stringToColor(chars):
         value = (hash >> (i * 8)) & 0xFF
         color += hex(value)[2:].zfill(2)
     return color
+
+
+def randomColor():
+    acc = "#"
+    for _ in range(3):
+        val = math.floor(random.uniform(0, 255))
+        acc += hex(val)[2:].zfill(2)
+    return acc
 
 
 def sanitizeHtml(code):
@@ -81,8 +91,15 @@ class Series:
         self._radiuses = []
         if self._borderColor is None:
             self._borderColor = stringToColor(self._ylabel)
+        elif self._borderColor == "random":
+            self._borderColor = randomColor()
         if self._fillColor is None:
             self._fillColor = stringToColor(self._ylabel)
+        elif self._fillColor == "random":
+            if self._borderColor == "random":
+                self._fillColor = self._borderColor
+            else:
+                self._fillColor = randomColor()
 
     def xlabel(self, val=None):
         if val is not None:
