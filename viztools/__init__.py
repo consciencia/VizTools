@@ -422,14 +422,13 @@ class MultiSeries:
 
 class HttpHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
-        # self.headers
-        if self.path not in HttpServer.ROUTES:
+        route = self.server.getRoute(self.path)
+        if route is None:
             self.send_error(404,
                             "Unknown route",
                             "Not found handler for '%s'!" % self.path)
         else:
-            route = HttpServer.ROUTES[self.path]
-            if hasattr(route, "clone"):
+            if hasattr(route, "clone") and callable(route.clone):
                 route = route.clone()
             response = route.render()
             self.send_response(200)
@@ -438,19 +437,47 @@ class HttpHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(response.encode("utf-8"))
 
 
-class HttpServer(threading.Thread):
-    ROUTES = {}
-    INST = None
+class CustomThreadingHTTPServer(http.server.ThreadingHTTPServer):
+    def __init__(self, wrapper, addr, handler):
+        http.server.ThreadingHTTPServer.__init__(self, addr, handler)
+        self._wrapper = wrapper
 
+    def getRoute(self, path):
+        return self._wrapper.getRoute(path)
+
+
+class HttpServer(threading.Thread):
     def __init__(self, addr=("127.0.0.1", 10000), blocking=False):
-        if HttpServer.INST is not None:
-            raise Exception("HttpServer already exists!")
         self._addr = addr
         self._blocking = blocking
-        self._server = http.server.ThreadingHTTPServer(addr, HttpHandler)
+        self._server = CustomThreadingHTTPServer(self, addr, HttpHandler)
+        self._routes = {}
         threading.Thread.__init__(self)
         self.setDaemon(True)
-        HttpServer.INST = self
+
+    def getRoute(self, path):
+        if not isinstance(path, (type(""), type(u""))):
+            raise Exception("Path must be string!")
+        if path in self._routes:
+            return self._routes[path]
+        return None
+
+    def addRoute(self, path, handler):
+        if not isinstance(path, (type(""), type(u""))):
+            raise Exception("Path must be string!")
+        if not hasattr(handler, "render"):
+            raise Exception("Handler has no method \"render\"!")
+        if not callable(handler.render) :
+            raise Exception("Attribute \"render\" is not callable!")
+        self._routes[path] = handler
+
+    def removeRoute(self, path):
+        if not isinstance(path, (type(""), type(u""))):
+            raise Exception("Path must be string!")
+        del self._routes[path]
+
+    def uriPrefix(self):
+        return "http://%s:%s/" % self._addr
 
     def start(self):
         threading.Thread.start(self)
@@ -460,26 +487,6 @@ class HttpServer(threading.Thread):
 
     def run(self):
         self._server.serve_forever()
-
-    @staticmethod
-    def uriPrefix():
-        return "http://%s:%s/" % HttpServer.INST._addr
-
-    @staticmethod
-    def addRoute(path, handler):
-        if not isinstance(path, (type(""), type(u""))):
-            raise Exception("Path must be string!")
-        if not hasattr(handler, "render"):
-            raise Exception("Handler has no method \"render\"!")
-        if not callable(handler.render) :
-            raise Exception("Attribute \"render\" is not callable!")
-        HttpServer.ROUTES[path] = handler
-
-    @staticmethod
-    def removeRoute(path):
-        if not isinstance(path, (type(""), type(u""))):
-            raise Exception("Path must be string!")
-        del HttpServer.ROUTES[path]
 
 
 class VBase:
