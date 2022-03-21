@@ -74,7 +74,10 @@ class Series:
                  xlabel="X",
                  ylabel="Y",
                  borderColor=None,
-                 fillColor=None):
+                 fillColor=None,
+                 fill=False,
+                 interpolation=False,
+                 primaryYAxis=True):
         if x is None:
             x = []
         if y is None:
@@ -87,6 +90,9 @@ class Series:
         self._ylabel = ylabel
         self._borderColor = borderColor
         self._fillColor = fillColor
+        self._fill = fill
+        self._interpolation = interpolation
+        self._primaryYAxis = primaryYAxis
         self._pad = 15
         self._radiuses = []
         if self._borderColor is None:
@@ -132,6 +138,30 @@ class Series:
             self._fillColor = val
         else:
             return self._fillColor
+
+    def fill(self, val=None):
+        if val is not None:
+            if not isinstance(val, bool):
+                raise Exception("Invalid input!")
+            self._fill = val
+        else:
+            return self._fill
+
+    def interpolation(self, val=None):
+        if val is not None:
+            if not isinstance(val, bool):
+                raise Exception("Invalid input!")
+            self._interpolation = val
+        else:
+            return self._interpolation
+
+    def primaryYAxis(self, val=None):
+        if val is not None:
+            if not isinstance(val, bool):
+                raise Exception("Invalid input!")
+            self._primaryYAxis = val
+        else:
+            return self._primaryYAxis
 
     def x(self, vals=None, idx=None):
         if vals is not None:
@@ -335,6 +365,48 @@ class MultiSeries:
             return self._serieses[idx].fillColor()
         else:
             return [series.fillColor() for series in self._serieses]
+
+    def fills(self, vals=None, idx=None):
+        if vals is not None:
+            if idx is None:
+                if not isinstance(vals, list):
+                    raise Exception("Invalid input!")
+                for i, series in enumerate(self._serieses):
+                    series.fill(vals[i])
+            else:
+                self._serieses[idx].fill(vals)
+        elif idx is not None:
+            return self._serieses[idx].fill()
+        else:
+            return [series.fill() for series in self._serieses]
+
+    def interpolations(self, vals=None, idx=None):
+        if vals is not None:
+            if idx is None:
+                if not isinstance(vals, list):
+                    raise Exception("Invalid input!")
+                for i, series in enumerate(self._serieses):
+                    series.interpolation(vals[i])
+            else:
+                self._serieses[idx].interpolation(vals)
+        elif idx is not None:
+            return self._serieses[idx].interpolation()
+        else:
+            return [series.interpolation() for series in self._serieses]
+
+    def primaryYAxises(self, vals=None, idx=None):
+        if vals is not None:
+            if idx is None:
+                if not isinstance(vals, list):
+                    raise Exception("Invalid input!")
+                for i, series in enumerate(self._serieses):
+                    series.primaryYAxis(vals[i])
+            else:
+                self._serieses[idx].primaryYAxis(vals)
+        elif idx is not None:
+            return self._serieses[idx].primaryYAxis()
+        else:
+            return [series.primaryYAxis() for series in self._serieses]
 
     def x(self, vals=None, idx=None):
         if vals is not None:
@@ -1045,8 +1117,9 @@ class VDiagram(VBase):
                 "label": s.ylabel(),
                 "backgroundColor": s.fillColor(),
                 "borderColor": s.borderColor(),
-                "fill": False,
-                "interpolation": False
+                "fill": s.fill(),
+                "interpolation": s.interpolation(),
+                "primaryYAxis": s.primaryYAxis()
             })
 
     def beforeRender(self):

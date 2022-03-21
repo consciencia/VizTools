@@ -45,6 +45,10 @@ VizTools.Diagram = {
         };
         obj.__proto__ = VizTools.Diagram;
 
+        if (obj.enableLogs) {
+            console.log(obj);
+        }
+
         var targetDatasets = obj.createDataset();
         var scales = obj.createScales();
         var config = obj.createConfig(targetDatasets,
@@ -52,6 +56,23 @@ VizTools.Diagram = {
         obj.generate(config);
 
         return obj;
+    },
+
+    isMultiaxis() {
+        var result = false;
+        var lastVal = null;
+
+        for (var entry of this.datasetMeta) {
+            if (lastVal === null) {
+                lastVal = entry.primaryYAxis;
+            } else if (lastVal != entry.primaryYAxis) {
+                result = true;
+
+                break;
+            }
+        }
+
+        return result;
     },
 
     isPieLikeDiag() {
@@ -101,6 +122,14 @@ VizTools.Diagram = {
                 fill: m.fill,
             };
 
+            if (this.isMultiaxis()) {
+                if (m.primaryYAxis) {
+                    result.yAxisID = "y";
+                } else {
+                    result.yAxisID = "y2";
+                }
+            }
+
             if (!this.isScatterLikeDiag() && !m.interpolation) {
                 result.lineTension = 0;
             }
@@ -120,7 +149,7 @@ VizTools.Diagram = {
         if (this.isPieLikeDiag() || this.isScatterLikeDiag()) {
             return {};
         } else {
-            return {
+            var result = {
 	              x: {
 		                display: true,
 		                scaleLabel: {
@@ -137,6 +166,18 @@ VizTools.Diagram = {
                     beginAtZero: true
 	              }
             };
+
+            if (this.isMultiaxis())
+            {
+                result.y.position = "left";
+                result.y2 = {
+                    display: true,
+                    position: "right",
+                    beginAtZero: true
+                };
+            }
+
+            return result;
         }
     },
 
