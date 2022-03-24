@@ -698,11 +698,9 @@ class VBase:
         self._children.append(child)
 
     def params(self, key, val=None):
-        if val:
+        if val is not None:
             self._params[key] = val
-            return None
-        else:
-            return self._params[key]
+        return self._params[key]
 
     def beforeRender(self):
         pass
